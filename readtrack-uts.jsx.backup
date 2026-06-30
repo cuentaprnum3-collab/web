@@ -1,0 +1,1035 @@
+import { useState, useEffect } from "react";
+
+const C = {
+  dark: "#29313c", purple: "#7c2a8e", lime: "#bed52f", limeDk: "#9ab022",
+  purpleLt: "#9d3db3", white: "#fff",
+  g100: "#f6f7f8", g200: "#eef0f2", g300: "#dde0e4", g400: "#b0b6be",
+  tPrimary: "#1a2030", tSecondary: "#5a6372", tHint: "#9ba3ad",
+};
+
+const css = `
+  @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'Plus Jakarta Sans',sans-serif;background:${C.g100};color:${C.tPrimary};min-height:100vh;}
+  .app{display:flex;min-height:100vh;}
+  /* Sidebar */
+  .sidebar{width:240px;background:${C.dark};display:flex;flex-direction:column;position:fixed;top:0;left:0;height:100vh;z-index:100;transition:transform .25s ease;}
+  .sb-logo{padding:22px 20px 18px;border-bottom:1px solid rgba(255,255,255,.08);display:flex;align-items:center;gap:10px;}
+  .sb-icon{width:34px;height:34px;background:${C.lime};border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .sb-name{color:#fff;font-size:15px;font-weight:800;letter-spacing:-.01em;}
+  .sb-nav{flex:1;padding:14px 0;}
+  .sb-section-label{font-size:9px;font-weight:700;color:rgba(255,255,255,.25);letter-spacing:.1em;text-transform:uppercase;padding:8px 22px 4px;}
+  .nav-item{display:flex;align-items:center;gap:11px;padding:10px 20px;cursor:pointer;border-radius:0;transition:background .12s;}
+  .nav-item:hover{background:rgba(255,255,255,.06);}
+  .nav-item.active{background:rgba(190,213,47,.1);}
+  .nav-ic{color:rgba(255,255,255,.4);font-size:16px;flex-shrink:0;}
+  .nav-item.active .nav-ic{color:${C.lime};}
+  .nav-lbl{font-size:13.5px;font-weight:500;color:rgba(255,255,255,.5);}
+  .nav-item.active .nav-lbl{color:${C.lime};font-weight:700;}
+  .nav-badge{margin-left:auto;background:${C.lime};color:${C.dark};font-size:10px;font-weight:800;padding:2px 7px;border-radius:8px;}
+  .sb-bottom{padding:14px 18px;border-top:1px solid rgba(255,255,255,.08);display:flex;align-items:center;gap:10px;}
+  .sb-avatar{width:36px;height:36px;background:${C.lime};border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;color:${C.dark};font-size:13px;flex-shrink:0;}
+  .sb-user-name{color:#fff;font-size:12.5px;font-weight:600;}
+  .sb-user-email{color:rgba(255,255,255,.32);font-size:10px;margin-top:1px;}
+  /* Main */
+  .main{margin-left:240px;flex:1;display:flex;flex-direction:column;min-height:100vh;}
+  .topbar{background:#fff;border-bottom:1.5px solid ${C.g200};padding:15px 28px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50;}
+  .topbar-title{font-size:20px;font-weight:800;color:${C.tPrimary};}
+  .topbar-sub{font-size:12px;color:${C.tHint};margin-top:2px;}
+  .page{padding:24px 28px;}
+  /* Buttons */
+  .btn{height:40px;border:none;border-radius:10px;cursor:pointer;display:inline-flex;align-items:center;gap:8px;padding:0 16px;font-family:inherit;font-size:13px;font-weight:700;transition:all .12s;}
+  .btn-lime{background:${C.lime};color:${C.dark};box-shadow:0 2px 10px rgba(190,213,47,.35);}
+  .btn-lime:hover{background:${C.limeDk};}
+  .btn-ghost{background:#fff;border:1.5px solid ${C.g300};color:${C.tSecondary};}
+  .btn-ghost:hover{background:${C.g100};}
+  .btn-sm{height:34px;font-size:12px;padding:0 12px;}
+  /* Cards */
+  .card{background:#fff;border-radius:16px;padding:20px;box-shadow:0 2px 10px rgba(0,0,0,.05);}
+  /* Stats grid */
+  .stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px;}
+  .stat-card{background:#fff;border-radius:14px;padding:18px 20px;box-shadow:0 2px 8px rgba(0,0,0,.05);}
+  .stat-icon{width:42px;height:42px;border-radius:12px;display:flex;align-items:center;justify-content:center;margin-bottom:12px;}
+  .stat-value{font-size:26px;font-weight:800;color:${C.tPrimary};}
+  .stat-label{font-size:12px;color:${C.tHint};margin-top:2px;}
+  .stat-change{font-size:11px;font-weight:600;margin-top:6px;}
+  .stat-pos{color:#16a34a;} .stat-neg{color:#dc2626;}
+  /* Table */
+  .table-wrap{background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.05);}
+  table{width:100%;border-collapse:collapse;}
+  thead{background:${C.g100};}
+  th{font-size:11px;font-weight:700;color:${C.tHint};text-transform:uppercase;letter-spacing:.05em;padding:12px 16px;text-align:left;border-bottom:1.5px solid ${C.g200};}
+  td{padding:14px 16px;border-bottom:1px solid ${C.g200};vertical-align:middle;font-size:13.5px;}
+  tr:last-child td{border-bottom:none;}
+  tr:hover td{background:${C.g100};}
+  /* Search */
+  .search-wrap{background:#fff;border:1.5px solid ${C.g300};border-radius:12px;display:flex;align-items:center;gap:10px;padding:0 14px;height:42px;}
+  .search-wrap input{border:none;outline:none;font-size:13.5px;color:${C.tPrimary};flex:1;background:transparent;font-family:inherit;}
+  /* Chips/tags */
+  .chip{padding:4px 11px;border-radius:20px;font-size:11px;font-weight:700;display:inline-flex;align-items:center;}
+  .chip-purple{background:rgba(124,42,142,.08);color:${C.purple};}
+  .chip-lime{background:rgba(190,213,47,.12);color:${C.limeDk};}
+  .chip-gray{background:rgba(41,49,60,.06);color:${C.dark};}
+  .chip-green{background:rgba(34,197,94,.1);color:#16a34a;}
+  .chip-orange{background:rgba(249,115,22,.1);color:#c2410c;}
+  .chip-red{background:rgba(239,68,68,.08);color:#dc2626;}
+  /* Progress */
+  .prog-track{height:6px;background:${C.g200};border-radius:3px;overflow:hidden;}
+  .prog-fill{height:6px;border-radius:3px;background:${C.lime};}
+  /* Modals */
+  .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;display:flex;align-items:center;justify-content:center;}
+  .modal{background:#fff;border-radius:20px;padding:28px;width:100%;max-width:500px;box-shadow:0 20px 60px rgba(0,0,0,.2);}
+  .modal-title{font-size:18px;font-weight:800;color:${C.tPrimary};margin-bottom:20px;}
+  /* Form fields */
+  .field-label{font-size:12px;font-weight:600;color:${C.tSecondary};margin-bottom:6px;}
+  .field-input{width:100%;height:46px;background:${C.g100};border:1.5px solid ${C.g300};border-radius:11px;padding:0 14px;font-size:14px;font-family:inherit;color:${C.tPrimary};outline:none;transition:border-color .15s;}
+  .field-input:focus{border-color:${C.purple};background:#fff;box-shadow:0 0 0 3px rgba(124,42,142,.08);}
+  .field-textarea{width:100%;background:${C.g100};border:1.5px solid ${C.g300};border-radius:11px;padding:12px 14px;font-size:14px;font-family:inherit;color:${C.tPrimary};outline:none;resize:vertical;transition:border-color .15s;}
+  .field-textarea:focus{border-color:${C.purple};background:#fff;box-shadow:0 0 0 3px rgba(124,42,142,.08);}
+  /* Materia cards */
+  .mat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;}
+  .mat-card{background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.05);cursor:pointer;transition:box-shadow .15s,transform .12s;}
+  .mat-card:hover{box-shadow:0 6px 24px rgba(0,0,0,.1);transform:translateY(-2px);}
+  .mat-stripe{height:5px;}
+  .mat-body{padding:18px 20px;}
+  /* Nota cards */
+  .nota-card{background:#fff;border-radius:14px;padding:16px 18px;box-shadow:0 2px 8px rgba(0,0,0,.05);display:flex;gap:11px;cursor:pointer;transition:box-shadow .15s;}
+  .nota-card:hover{box-shadow:0 4px 18px rgba(0,0,0,.08);}
+  .nota-bar{width:4px;border-radius:2px;flex-shrink:0;}
+  .nota-content{flex:1;min-width:0;}
+  /* Link/File chips */
+  .link-chip{display:flex;align-items:center;gap:8px;background:#f0f9ff;border:1px solid #bae6fd;border-radius:9px;padding:8px 12px;margin-bottom:8px;}
+  .file-chip{display:flex;align-items:center;gap:10px;background:${C.g100};border:1px solid ${C.g300};border-radius:9px;padding:8px 12px;margin-bottom:8px;}
+  /* Libro cards */
+  .libro-card{background:#fff;border-radius:14px;padding:16px;box-shadow:0 2px 8px rgba(0,0,0,.05);cursor:pointer;transition:box-shadow .15s;}
+  .libro-card:hover{box-shadow:0 6px 22px rgba(0,0,0,.09);}
+  /* Action icons */
+  .act-btn{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background .12s;border:none;background:transparent;}
+  .act-edit{background:rgba(124,42,142,.08);} .act-edit:hover{background:rgba(124,42,142,.16);}
+  .act-del{background:rgba(239,68,68,.08);} .act-del:hover{background:rgba(239,68,68,.16);}
+  /* Week calendar */
+  .week-cal{display:flex;gap:8px;}
+  .wday{width:40px;height:48px;border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;}
+  .wd-done{background:${C.lime};}
+  .wd-today{background:#fff;border:2px solid ${C.lime};}
+  .wd-pending{background:rgba(255,255,255,.05);border:1.5px dashed rgba(255,255,255,.12);}
+  .wd-name{font-size:9px;font-weight:700;}
+  .wd-done .wd-name{color:${C.dark};} .wd-today .wd-name{color:${C.purple};} .wd-pending .wd-name{color:rgba(255,255,255,.3);}
+  /* Login */
+  .login-page{min-height:100vh;display:flex;}
+  .login-left{width:420px;background:${C.dark};display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 44px;flex-shrink:0;position:relative;overflow:hidden;}
+  .login-right{flex:1;background:#fff;display:flex;align-items:center;justify-content:center;padding:60px;}
+  .login-form-box{width:100%;max-width:420px;}
+  .login-tabs{display:flex;background:${C.g200};border-radius:12px;padding:4px;margin-bottom:24px;}
+  .login-tab{flex:1;text-align:center;padding:9px 0;font-size:13.5px;font-weight:600;color:${C.tSecondary};border-radius:9px;cursor:pointer;transition:all .12s;}
+  .login-tab.active{background:#fff;color:${C.dark};box-shadow:0 2px 10px rgba(41,49,60,.12);}
+  /* Racha */
+  .racha-card{background:linear-gradient(135deg,${C.dark},#3d4a5c);border-radius:16px;padding:20px;color:#fff;}
+  /* Meta card */
+  .meta-big{background:linear-gradient(135deg,${C.dark},#3d4a5c);border-radius:16px;padding:22px;margin-bottom:16px;}
+  /* Logros */
+  .logro-badge{width:58px;height:58px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:26px;}
+  .lb-earned{background:${C.purple};box-shadow:0 4px 14px rgba(124,42,142,.3);}
+  .lb-locked{background:${C.g200};opacity:.6;}
+  /* Filter tabs */
+  .filter-tabs{display:flex;gap:8px;}
+  .ftab{padding:7px 16px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;transition:all .12s;}
+  .ftab-active{background:${C.dark};color:#fff;}
+  .ftab-normal{background:#fff;color:${C.tSecondary};border:1.5px solid ${C.g300};}
+  .ftab-normal:hover{background:${C.g100};}
+  /* Notifications */
+  .toast{position:fixed;bottom:24px;right:24px;background:${C.dark};color:#fff;padding:14px 20px;border-radius:12px;font-size:13px;font-weight:600;z-index:999;display:flex;align-items:center;gap:10px;box-shadow:0 8px 24px rgba(0,0,0,.2);animation:slideUp .2s ease;}
+  @keyframes slideUp{from{transform:translateY(20px);opacity:0;}to{transform:translateY(0);opacity:1;}}
+  /* Charts */
+  .bar-chart{display:flex;align-items:flex-end;gap:8px;height:100px;padding-top:8px;}
+  .bar{flex:1;border-radius:6px 6px 0 0;background:rgba(190,213,47,.25);position:relative;transition:background .15s;cursor:pointer;}
+  .bar:hover{background:${C.lime};}
+  .bar.today{background:${C.lime};}
+  .bar-label{font-size:9px;color:${C.tHint};text-align:center;margin-top:4px;}
+  /* Breadcrumb */
+  .bc{font-size:12px;color:${C.tHint};margin-bottom:6px;}
+  .bc span{color:${C.tPrimary};font-weight:600;}
+`;
+
+const COLORS_MATERIA = ["#7c2a8e","#bed52f","#f97316","#38bdf8","#10b981","#f59e0b","#ec4899"];
+
+const initialData = {
+  user: { nombre: "Jaider Araque", email: "jenriquearaque@correo.uts.edu.co", initials: "JA" },
+  materias: [
+    { id:1, nombre:"Bases de Datos", semestre:"2026-1", color:0, notas:[], archivada:false },
+    { id:2, nombre:"Ingeniería de Software", semestre:"2026-1", color:1, notas:[], archivada:false },
+    { id:3, nombre:"Redes y Comunicaciones", semestre:"2026-1", color:2, notas:[], archivada:false },
+    { id:4, nombre:"Estructuras de Datos", semestre:"2026-1", color:3, notas:[], archivada:false },
+  ],
+  libros: [
+    { id:1, titulo:"Fundamentos de Bases de Datos", autor:"Silberschatz et al.", tipo:"PDF", totalPaginas:400, paginasLeidas:78, estado:"LEYENDO", sesiones:[] },
+    { id:2, titulo:"Clean Code", autor:"Robert C. Martin", tipo:"FÍSICO", totalPaginas:432, paginasLeidas:432, estado:"TERMINADO", sesiones:[] },
+    { id:3, titulo:"Redes de Computadoras", autor:"Tanenbaum", tipo:"PDF", totalPaginas:960, paginasLeidas:0, estado:"PENDIENTE", sesiones:[] },
+  ],
+  meta: { paginasSemana: 400, paginasEstaSemanah: 248, historial: [
+    { semana:"May 12–18, 2026", meta:350, leidas:350 },
+    { semana:"May 5–11, 2026", meta:300, leidas:261 },
+    { semana:"Abr 28–May 4", meta:400, leidas:180 },
+  ]},
+  racha: { actual: 5, maxima: 7 },
+  logros: [
+    { id:1, emoji:"📖", nombre:"1ª sesión", ganado:true },
+    { id:2, emoji:"✅", nombre:"1er libro", ganado:true },
+    { id:3, emoji:"🔥", nombre:"Racha 7", ganado:true },
+    { id:4, emoji:"🏆", nombre:"Racha 30", ganado:false },
+    { id:5, emoji:"📚", nombre:"10 libros", ganado:false },
+    { id:6, emoji:"⭐", nombre:"100 notas", ganado:false },
+  ],
+  config: { recordatorios:true, modoOscuro:false },
+  actividadSemanal: [
+    { dia:"L",pags:45 },{ dia:"M",pags:80 },{ dia:"X",pags:35 },
+    { dia:"J",pags:88 },{ dia:"V",pags:0 },{ dia:"S",pags:0 },{ dia:"D",pags:0 },
+  ],
+};
+
+const NOTAS_DEMO = [
+  { id:1, materiaId:1, texto:"Estudiar páginas 12 a 28 del PDF de normalización. Importante para el parcial del 15 de junio. Repasar 3FN y BCNF con ejemplos.", enlace:"https://youtube.com/watch?v=clase-bd-normalizacion-3fn", archivo:null, creadoEn:"Hoy, 9:30 am" },
+  { id:2, materiaId:1, texto:"Parcial 3 — Bases de datos relacionales. Material de estudio completo.", enlace:null, archivo:{ nombre:"Parcial3_BaseDatos_2026.pdf", tipo:"PDF", tamano:"2.4 MB" }, creadoEn:"Lun 19 may, 8:00 am" },
+  { id:3, materiaId:1, texto:"Apuntes del tablero — Jueves 23 mayo. Diagrama ER completo del ejercicio de práctica.", enlace:null, archivo:{ nombre:"foto_tablero.jpg", tipo:"IMG", tamano:"1.8 MB" }, creadoEn:"Jue 23 may, 10:45 am" },
+  { id:4, materiaId:2, texto:"Revisión del diagrama de clases del proyecto final. Refactorizar el módulo de autenticación.", enlace:"https://docs.google.com/presentation/ingenieria-sw", archivo:null, creadoEn:"Mar 20 may, 2:15 pm" },
+  { id:5, materiaId:3, texto:"Protocolo TCP/IP — capas del modelo OSI. Ver grabación de la clase.", enlace:"https://meet.google.com/grabacion-redes", archivo:null, creadoEn:"Mié 21 may, 4:00 pm" },
+  { id:6, materiaId:4, texto:"Implementar árbol AVL para el taller de estructuras.", enlace:null, archivo:{ nombre:"Taller_AVL.pdf", tipo:"PDF", tamano:"640 KB" }, creadoEn:"Vie 16 may, 11:00 am" },
+];
+
+export default function ReadTrackApp() {
+  const [page, setPage] = useState("login");
+  const [loginTab, setLoginTab] = useState("login");
+  const [loginForm, setLoginForm] = useState({ email:"", password:"", nombre:"", confirm:"", acepta:false });
+  const [data, setData] = useState({ ...initialData, notas: NOTAS_DEMO });
+  const [activePage, setActivePage] = useState("dashboard");
+  const [activeMateria, setActiveMateria] = useState(null);
+  const [activeLibro, setActiveLibro] = useState(null);
+  const [modal, setModal] = useState(null);
+  const [toast, setToast] = useState(null);
+  const [search, setSearch] = useState("");
+  const [filtroLibros, setFiltroLibros] = useState("TODOS");
+
+  const showToast = (msg) => {
+    setToast(msg);
+    setTimeout(() => setToast(null), 3000);
+  };
+
+  const totalNotas = data.notas.length;
+  const totalLibros = data.libros.length;
+  const totalPaginas = data.libros.reduce((s,l) => s + l.paginasLeidas, 0);
+  const totalSesiones = data.libros.reduce((s,l) => s + l.sesiones.length, 0) + 12;
+
+  if (page === "login") {
+    return (
+      <div className="login-page">
+        <style>{css}</style>
+        <div className="login-left">
+          <div style={{position:"absolute",top:"-80px",right:"-80px",width:280,height:280,background:"rgba(124,42,142,.15)",borderRadius:"50%"}}></div>
+          <div style={{position:"absolute",bottom:"-60px",left:"-60px",width:200,height:200,background:"rgba(190,213,47,.08)",borderRadius:"50%"}}></div>
+          <div style={{width:80,height:80,background:"#fff",borderRadius:22,display:"flex",alignItems:"center",justifyContent:"center",marginBottom:20,position:"relative",zIndex:1}}>
+            <BookIcon size={48} />
+          </div>
+          <div style={{color:"#fff",fontSize:26,fontWeight:800,textAlign:"center",marginBottom:6,position:"relative",zIndex:1}}>ReadTrack UTS</div>
+          <div style={{color:"rgba(255,255,255,.45)",fontSize:13,textAlign:"center",marginBottom:40,position:"relative",zIndex:1}}>Tu hábito lector y estudio, siempre organizados</div>
+          {[
+            { color:"rgba(124,42,142,.3)", ic:<BookIcon size={18} color={C.lime}/>, txt:<><b style={{color:"#fff"}}>Organiza tus materias</b> — notas, apuntes, videos y archivos en un solo lugar</> },
+            { color:"rgba(190,213,47,.2)", ic:<ChartIcon size={18} color={C.dark}/>, txt:<><b style={{color:"#fff"}}>Sigue tu progreso lector</b> — estadísticas, metas semanales y rachas</> },
+            { color:"rgba(255,255,255,.1)", ic:<StarIcon size={18} color="rgba(255,255,255,.7)"/>, txt:<><b style={{color:"#fff"}}>Gana logros</b> — insignias por constancia y metas cumplidas</> },
+          ].map((f,i) => (
+            <div key={i} style={{display:"flex",alignItems:"center",gap:14,marginBottom:18,position:"relative",zIndex:1,width:"100%"}}>
+              <div style={{width:40,height:40,borderRadius:12,display:"flex",alignItems:"center",justifyContent:"center",background:f.color,flexShrink:0}}>{f.ic}</div>
+              <div style={{color:"rgba(255,255,255,.75)",fontSize:13.5,lineHeight:1.5}}>{f.txt}</div>
+            </div>
+          ))}
+        </div>
+
+        <div className="login-right">
+          <div className="login-form-box">
+            <div style={{fontSize:25,fontWeight:800,color:C.tPrimary,marginBottom:4}}>{loginTab==="login" ? "Bienvenido de nuevo" : "Crear cuenta"}</div>
+            <div style={{fontSize:13.5,color:C.tHint,marginBottom:22}}>{loginTab==="login" ? "Ingresa con tu correo institucional UTS" : "Completa el formulario para unirte"}</div>
+            <div className="login-tabs">
+              <div className={`login-tab ${loginTab==="login"?"active":""}`} onClick={()=>setLoginTab("login")}>Ingresar</div>
+              <div className={`login-tab ${loginTab==="registro"?"active":""}`} onClick={()=>setLoginTab("registro")}>Registrarse</div>
+            </div>
+
+            {loginTab==="registro" && (
+              <div style={{marginBottom:14}}>
+                <div className="field-label">Nombre completo</div>
+                <input className="field-input" placeholder="Tu nombre completo" value={loginForm.nombre} onChange={e=>setLoginForm({...loginForm,nombre:e.target.value})} style={{marginBottom:0}}/>
+              </div>
+            )}
+
+            <div style={{marginBottom:loginTab==="registro"?0:14}}>
+              <div className="field-label">Correo institucional</div>
+              <input className="field-input" type="email" placeholder="usuario@uts.edu.co" value={loginForm.email} onChange={e=>setLoginForm({...loginForm,email:e.target.value})} />
+            </div>
+
+            {loginForm.email.includes("@") && (loginForm.email.endsWith("uts.edu.co")) && (
+              <div style={{display:"flex",alignItems:"center",gap:8,background:"#f0fdf4",border:"1px solid #bbf7d0",borderRadius:10,padding:"9px 14px",marginBottom:14}}>
+                <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth={2.5}><polyline points="20 6 9 17 4 12"/></svg>
+                <span style={{fontSize:12,color:"#16a34a",fontWeight:600}}>Dominio UTS verificado</span>
+              </div>
+            )}
+
+            <div style={{marginBottom:14}}>
+              <div className="field-label">Contraseña</div>
+              <input className="field-input" type="password" placeholder={loginTab==="registro"?"Mínimo 8 caracteres":"Tu contraseña"} value={loginForm.password} onChange={e=>setLoginForm({...loginForm,password:e.target.value})} />
+            </div>
+
+            {loginTab==="registro" && (
+              <>
+                <div style={{marginBottom:14}}>
+                  <div className="field-label">Confirmar contraseña</div>
+                  <input className="field-input" type="password" placeholder="Repetir contraseña" value={loginForm.confirm} onChange={e=>setLoginForm({...loginForm,confirm:e.target.value})} />
+                </div>
+                <div style={{display:"flex",gap:12,marginBottom:20,alignItems:"flex-start"}}>
+                  <div onClick={()=>setLoginForm({...loginForm,acepta:!loginForm.acepta})} style={{width:20,height:20,borderRadius:6,background:loginForm.acepta?C.purple:C.g200,border:`2px solid ${loginForm.acepta?C.purple:C.g300}`,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",flexShrink:0,marginTop:2}}>
+                    {loginForm.acepta && <svg width={11} height={11} viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth={3}><polyline points="20 6 9 17 4 12"/></svg>}
+                  </div>
+                  <span style={{fontSize:12.5,color:C.tSecondary,lineHeight:1.55}}>He leído y acepto los <span style={{color:C.purple,fontWeight:600}}>términos y condiciones</span> y autorizo el tratamiento de mis datos personales conforme a la <span style={{color:C.purple,fontWeight:600}}>Ley 1581 de 2012</span></span>
+                </div>
+              </>
+            )}
+
+            {loginTab==="login" && (
+              <div style={{textAlign:"right",marginBottom:18}}>
+                <span style={{fontSize:12.5,color:C.purple,fontWeight:600,cursor:"pointer"}}>¿Olvidaste tu contraseña?</span>
+              </div>
+            )}
+
+            <button className="btn btn-lime" style={{width:"100%",justifyContent:"center",height:50,fontSize:15,marginBottom:14}} onClick={()=>setPage("app")}>
+              {loginTab==="login" ? "Ingresar a ReadTrack UTS" : "Crear cuenta en ReadTrack UTS"}
+            </button>
+            <div style={{textAlign:"center",fontSize:13.5,color:C.tSecondary}}>
+              {loginTab==="login" ? <>¿No tienes cuenta? <span style={{color:C.purple,fontWeight:600,cursor:"pointer"}} onClick={()=>setLoginTab("registro")}>Regístrate aquí</span></> : <>¿Ya tienes cuenta? <span style={{color:C.purple,fontWeight:600,cursor:"pointer"}} onClick={()=>setLoginTab("login")}>Inicia sesión</span></>}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const navItems = [
+    { id:"dashboard", label:"Inicio", icon:<HomeIcon/> },
+    { id:"materias", label:"Mis materias", icon:<BookIcon size={16}/>, badge: data.materias.filter(m=>!m.archivada).length },
+    { id:"biblioteca", label:"Mi biblioteca", icon:<LibraryIcon/>, badge: data.libros.length },
+    { id:"metas", label:"Mis metas", icon:<ChartIcon size={16}/> },
+    { id:"perfil", label:"Mi perfil", icon:<UserIcon/> },
+  ];
+
+  const renderSidebar = () => (
+    <div className="sidebar">
+      <div className="sb-logo">
+        <div className="sb-icon"><BookIcon size={18} color={C.dark}/></div>
+        <div><div className="sb-name">ReadTrack UTS</div><div style={{color:"rgba(255,255,255,.3)",fontSize:9,marginTop:1}}>v1.0</div></div>
+      </div>
+      <div className="sb-nav">
+        <div className="sb-section-label">Navegación</div>
+        {navItems.map(n => (
+          <div key={n.id} className={`nav-item ${activePage===n.id?"active":""}`} onClick={()=>{ setActivePage(n.id); setActiveMateria(null); setActiveLibro(null); }}>
+            <span className="nav-ic">{n.icon}</span>
+            <span className="nav-lbl">{n.label}</span>
+            {n.badge && <span className="nav-badge">{n.badge}</span>}
+          </div>
+        ))}
+      </div>
+      <div className="sb-bottom">
+        <div className="sb-avatar">{data.user.initials}</div>
+        <div>
+          <div className="sb-user-name">{data.user.nombre}</div>
+          <div className="sb-user-email">{data.user.email}</div>
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderDashboard = () => (
+    <>
+      <div className="topbar">
+        <div>
+          <div className="topbar-title">Buenos días, {data.user.nombre.split(" ")[0]} 👋</div>
+          <div className="topbar-sub">Semestre 2026-1 · miércoles, 27 de mayo de 2026</div>
+        </div>
+        <button className="btn btn-lime" onClick={()=>setModal("nueva_sesion")}>+ Nueva sesión de lectura</button>
+      </div>
+      <div className="page">
+        <div className="stats-grid">
+          {[
+            { label:"Materias activas", value:data.materias.filter(m=>!m.archivada).length, icon:<BookIcon size={20} color={C.purple}/>, bg:"rgba(124,42,142,.08)", change:"+1 este semestre", pos:true },
+            { label:"Notas creadas", value:data.notas.length, icon:<NoteIcon/>, bg:"rgba(190,213,47,.12)", change:"+3 esta semana", pos:true },
+            { label:"Páginas leídas", value:totalPaginas.toLocaleString(), icon:<ChartIcon size={20} color="#f97316"/>, bg:"rgba(249,115,22,.1)", change:"+248 esta semana", pos:true },
+            { label:"Racha actual", value:`🔥 ${data.racha.actual}`, icon:null, bg:"rgba(41,49,60,.06)", change:`Máx: ${data.racha.maxima} días`, pos:true },
+          ].map((s,i) => (
+            <div key={i} className="stat-card">
+              {s.icon && <div className="stat-icon" style={{background:s.bg}}>{s.icon}</div>}
+              {!s.icon && <div style={{fontSize:30,marginBottom:8}}>{s.value}</div>}
+              {s.icon && <div className="stat-value">{s.value}</div>}
+              <div className="stat-label">{s.label}</div>
+              <div className={`stat-change ${s.pos?"stat-pos":"stat-neg"}`}>{s.change}</div>
+            </div>
+          ))}
+        </div>
+
+        <div style={{display:"grid",gridTemplateColumns:"1fr 360px",gap:20,marginBottom:20}}>
+          <div className="card">
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
+              <div style={{fontWeight:700,fontSize:15,color:C.tPrimary}}>Actividad semanal — páginas leídas</div>
+              <span className="chip chip-lime">Esta semana</span>
+            </div>
+            <div className="bar-chart">
+              {data.actividadSemanal.map((d,i) => {
+                const max = Math.max(...data.actividadSemanal.map(x=>x.pags), 1);
+                const h = d.pags ? Math.max((d.pags/max)*80, 8) : 4;
+                return (
+                  <div key={i} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center"}}>
+                    <div className={`bar ${i===4?"today":""}`} style={{height:h,width:"100%",minHeight:d.pags?8:4,opacity:d.pags?1:.25}}></div>
+                    <div className="bar-label">{d.dia}</div>
+                    {d.pags > 0 && <div style={{fontSize:9,color:C.tHint}}>{d.pags}</div>}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="racha-card">
+            <div style={{color:"rgba(255,255,255,.5)",fontSize:11,fontWeight:700,letterSpacing:".06em",textTransform:"uppercase",marginBottom:4}}>Racha de lectura</div>
+            <div style={{display:"flex",alignItems:"flex-end",gap:8,marginBottom:14}}>
+              <div style={{fontSize:36,fontWeight:800,color:"#fff"}}>{data.racha.actual}</div>
+              <div style={{fontSize:13,color:"rgba(255,255,255,.45)",marginBottom:6}}>días consecutivos</div>
+            </div>
+            <div className="prog-track" style={{marginBottom:8,background:"rgba(255,255,255,.1)"}}>
+              <div className="prog-fill" style={{width:`${(data.racha.actual/data.racha.maxima)*100}%`}}></div>
+            </div>
+            <div style={{fontSize:11,color:"rgba(255,255,255,.4)",marginBottom:14}}>Máxima racha: {data.racha.maxima} días</div>
+            <div className="week-cal">
+              {["L","M","X","J","V","S","D"].map((d,i) => (
+                <div key={i} className={`wday ${i<data.racha.actual?"wd-done":i===4?"wd-today":"wd-pending"}`}>
+                  <div style={{fontSize:13}}>{i<data.racha.actual?"✓":i===4?"●":"○"}</div>
+                  <div className="wd-name">{d}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:20}}>
+          <div className="card">
+            <div style={{fontWeight:700,fontSize:15,marginBottom:14}}>Libros en progreso</div>
+            {data.libros.filter(l=>l.estado==="LEYENDO").map(l => (
+              <div key={l.id} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 0",borderBottom:`1px solid ${C.g200}`}}>
+                <div style={{width:36,height:48,borderRadius:8,background:`rgba(124,42,142,.15)`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                  <BookIcon size={16} color={C.purple}/>
+                </div>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{fontSize:13.5,fontWeight:600,color:C.tPrimary,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{l.titulo}</div>
+                  <div style={{fontSize:11,color:C.tHint,marginBottom:6}}>{l.autor}</div>
+                  <div className="prog-track">
+                    <div className="prog-fill" style={{width:`${Math.round((l.paginasLeidas/l.totalPaginas)*100)}%`}}></div>
+                  </div>
+                </div>
+                <div style={{fontSize:13,fontWeight:700,color:C.limeDk,flexShrink:0}}>{Math.round((l.paginasLeidas/l.totalPaginas)*100)}%</div>
+              </div>
+            ))}
+          </div>
+
+          <div className="card">
+            <div style={{fontWeight:700,fontSize:15,marginBottom:14}}>Notas recientes</div>
+            {data.notas.slice(0,4).map(n => {
+              const mat = data.materias.find(m=>m.id===n.materiaId);
+              return (
+                <div key={n.id} style={{padding:"10px 0",borderBottom:`1px solid ${C.g200}`,cursor:"pointer"}} onClick={()=>{setActiveMateria(mat);setActivePage("materias");}}>
+                  <div style={{display:"flex",alignItems:"flex-start",gap:8}}>
+                    <div style={{width:4,height:36,borderRadius:2,background:COLORS_MATERIA[mat?.color||0],flexShrink:0,marginTop:2}}></div>
+                    <div style={{flex:1,minWidth:0}}>
+                      <div style={{fontSize:11,color:C.tHint,marginBottom:2}}>{mat?.nombre}</div>
+                      <div style={{fontSize:13,color:C.tPrimary,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{n.texto || "(Archivo adjunto)"}</div>
+                    </div>
+                    <div style={{fontSize:10,color:C.tHint,flexShrink:0}}>{n.creadoEn}</div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    </>
+  );
+
+  const renderMaterias = () => {
+    if (activeMateria) {
+      const notas = data.notas.filter(n => n.materiaId === activeMateria.id);
+      const filtered = notas.filter(n => !search || (n.texto||"").toLowerCase().includes(search.toLowerCase()));
+      return (
+        <>
+          <div className="topbar">
+            <div>
+              <div className="bc"><span style={{cursor:"pointer",color:C.purple}} onClick={()=>setActiveMateria(null)}>Materias</span> › <span>{activeMateria.nombre}</span></div>
+              <div style={{display:"flex",alignItems:"center",gap:10}}>
+                <div style={{width:6,height:28,background:COLORS_MATERIA[activeMateria.color],borderRadius:3}}></div>
+                <div className="topbar-title">{activeMateria.nombre}</div>
+                <span className="chip chip-purple">{activeMateria.semestre}</span>
+              </div>
+            </div>
+            <div style={{display:"flex",gap:10}}>
+              <div className="search-wrap" style={{width:240}}>
+                <SearchIcon/><input placeholder="Buscar en esta materia..." value={search} onChange={e=>setSearch(e.target.value)}/>
+              </div>
+              <button className="btn btn-lime" onClick={()=>setModal("nueva_nota")}>+ Nueva nota</button>
+            </div>
+          </div>
+          <div className="page">
+            {filtered.length === 0 ? (
+              <div className="card" style={{textAlign:"center",padding:"60px 20px"}}>
+                <div style={{fontSize:40,marginBottom:12}}>📝</div>
+                <div style={{fontSize:16,fontWeight:700,color:C.tPrimary,marginBottom:6}}>Sin notas aún</div>
+                <div style={{fontSize:13,color:C.tHint,marginBottom:20}}>Crea tu primera nota para esta materia</div>
+                <button className="btn btn-lime" onClick={()=>setModal("nueva_nota")}>+ Crear nota</button>
+              </div>
+            ) : (
+              <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:14}}>
+                {filtered.map(n => <NotaCard key={n.id} nota={n} color={COLORS_MATERIA[activeMateria.color]} onDelete={()=>{
+                  setData(d=>({...d,notas:d.notas.filter(x=>x.id!==n.id)}));
+                  showToast("Nota eliminada");
+                }}/>)}
+              </div>
+            )}
+          </div>
+        </>
+      );
+    }
+
+    const mats = data.materias.filter(m=>!m.archivada);
+    const filtered = mats.filter(m => !search || m.nombre.toLowerCase().includes(search.toLowerCase()));
+    return (
+      <>
+        <div className="topbar">
+          <div>
+            <div className="topbar-title">Mis materias</div>
+            <div className="topbar-sub">Semestre 2026-1 · {mats.length} materias activas</div>
+          </div>
+          <div style={{display:"flex",gap:10}}>
+            <div className="search-wrap" style={{width:240}}>
+              <SearchIcon/><input placeholder="Buscar materia..." value={search} onChange={e=>setSearch(e.target.value)}/>
+            </div>
+            <button className="btn btn-lime" onClick={()=>setModal("nueva_materia")}>+ Nueva materia</button>
+          </div>
+        </div>
+        <div className="page">
+          {filtered.length === 0 ? (
+            <div className="card" style={{textAlign:"center",padding:"60px 20px"}}>
+              <div style={{fontSize:40,marginBottom:12}}>📚</div>
+              <div style={{fontSize:16,fontWeight:700,marginBottom:6}}>Sin resultados</div>
+              <div style={{fontSize:13,color:C.tHint}}>No se encontraron materias con ese nombre</div>
+            </div>
+          ) : (
+            <div className="mat-grid">
+              {filtered.map(m => {
+                const nCount = data.notas.filter(n=>n.materiaId===m.id).length;
+                const aCount = data.notas.filter(n=>n.materiaId===m.id && n.archivo).length;
+                return (
+                  <div key={m.id} className="mat-card" onClick={()=>{setActiveMateria(m);setSearch("");}}>
+                    <div className="mat-stripe" style={{background:COLORS_MATERIA[m.color]}}></div>
+                    <div className="mat-body">
+                      <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
+                        <div>
+                          <div style={{fontSize:15,fontWeight:700,color:C.tPrimary}}>{m.nombre}</div>
+                          <div style={{fontSize:12,color:C.tHint,marginBottom:10}}>{m.semestre}</div>
+                        </div>
+                        <div style={{display:"flex",gap:4}}>
+                          <button className="act-btn act-edit" onClick={e=>{e.stopPropagation();}} title="Editar">
+                            <EditIcon/>
+                          </button>
+                          <button className="act-btn act-del" onClick={e=>{e.stopPropagation();setData(d=>({...d,materias:d.materias.filter(x=>x.id!==m.id)}));showToast("Materia eliminada");}} title="Eliminar">
+                            <TrashIcon/>
+                          </button>
+                        </div>
+                      </div>
+                      <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+                        <span className="chip chip-purple">{nCount} notas</span>
+                        <span className="chip chip-lime">{aCount} archivos</span>
+                      </div>
+                      <div style={{marginTop:12,paddingTop:10,borderTop:`1px solid ${C.g200}`,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                        <span style={{fontSize:11,color:C.tHint}}>Abrir materia →</span>
+                        <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke={C.g400} strokeWidth={2}><polyline points="9 18 15 12 9 6"/></svg>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </>
+    );
+  };
+
+  const renderBiblioteca = () => {
+    const filtrados = data.libros.filter(l => {
+      const matchFilter = filtroLibros==="TODOS" || l.estado===filtroLibros;
+      const matchSearch = !search || l.titulo.toLowerCase().includes(search.toLowerCase()) || (l.autor||"").toLowerCase().includes(search.toLowerCase());
+      return matchFilter && matchSearch;
+    });
+    const statusChip = {LEYENDO:{cls:"chip-lime",label:"Leyendo"},TERMINADO:{cls:"chip-green",label:"Terminado"},PENDIENTE:{cls:"chip-gray",label:"Pendiente"}};
+    return (
+      <>
+        <div className="topbar">
+          <div>
+            <div className="topbar-title">Mi biblioteca</div>
+            <div className="topbar-sub">{data.libros.length} materiales · {data.libros.filter(l=>l.estado==="LEYENDO").length} leyendo · {data.libros.filter(l=>l.estado==="TERMINADO").length} terminados · {data.libros.filter(l=>l.estado==="PENDIENTE").length} pendientes</div>
+          </div>
+          <button className="btn btn-lime" onClick={()=>setModal("nuevo_libro")}>+ Agregar libro</button>
+        </div>
+        <div className="page">
+          <div style={{display:"flex",gap:12,marginBottom:20,alignItems:"center"}}>
+            <div className="search-wrap" style={{flex:1}}>
+              <SearchIcon/><input placeholder="Buscar por título o autor..." value={search} onChange={e=>setSearch(e.target.value)}/>
+            </div>
+            <div className="filter-tabs">
+              {["TODOS","LEYENDO","PENDIENTE","TERMINADO"].map(f => (
+                <div key={f} className={`ftab ${filtroLibros===f?"ftab-active":"ftab-normal"}`} onClick={()=>setFiltroLibros(f)}>
+                  {f==="TODOS"?"Todos":f.charAt(0)+f.slice(1).toLowerCase()}
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="table-wrap">
+            <table>
+              <thead><tr>
+                <th>Libro</th><th>Tipo</th><th>Progreso</th><th>Estado</th><th>Acciones</th>
+              </tr></thead>
+              <tbody>
+                {filtrados.map(l => {
+                  const pct = Math.round((l.paginasLeidas/l.totalPaginas)*100);
+                  const sc = statusChip[l.estado];
+                  return (
+                    <tr key={l.id}>
+                      <td>
+                        <div style={{display:"flex",alignItems:"center",gap:12}}>
+                          <div style={{width:36,height:48,borderRadius:8,background:`rgba(124,42,142,.12)`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                            <BookIcon size={16} color={C.purple}/>
+                          </div>
+                          <div>
+                            <div style={{fontSize:13.5,fontWeight:600,color:C.tPrimary}}>{l.titulo}</div>
+                            <div style={{fontSize:11,color:C.tHint,marginTop:2}}>{l.autor}</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td><span className="chip chip-purple">{l.tipo}</span></td>
+                      <td style={{minWidth:160}}>
+                        <div className="prog-track" style={{marginBottom:4}}>
+                          <div className="prog-fill" style={{width:`${pct}%`}}></div>
+                        </div>
+                        <div style={{fontSize:11,color:C.tHint}}>{l.paginasLeidas} / {l.totalPaginas} págs · {pct}%</div>
+                      </td>
+                      <td><span className={`chip ${sc.cls}`}>{sc.label}</span></td>
+                      <td>
+                        <div style={{display:"flex",gap:6}}>
+                          <button className="btn btn-lime btn-sm" onClick={()=>{setActiveLibro(l);setModal("nueva_sesion_libro");}}>+ Sesión</button>
+                          <button className="act-btn act-del" title="Eliminar" onClick={()=>{setData(d=>({...d,libros:d.libros.filter(x=>x.id!==l.id)}));showToast("Libro eliminado");}}>
+                            <TrashIcon/>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+            {filtrados.length === 0 && (
+              <div style={{padding:"40px",textAlign:"center",color:C.tHint,fontSize:13.5}}>No se encontraron libros con los filtros seleccionados.</div>
+            )}
+          </div>
+        </div>
+      </>
+    );
+  };
+
+  const renderMetas = () => {
+    const pct = Math.round((data.meta.paginasEstaSemanah/data.meta.paginasSemana)*100);
+    return (
+      <>
+        <div className="topbar">
+          <div>
+            <div className="topbar-title">Mis metas</div>
+            <div className="topbar-sub">Semana actual · {data.meta.paginasEstaSemanah} de {data.meta.paginasSemana} páginas leídas</div>
+          </div>
+          <button className="btn btn-lime" onClick={()=>setModal("cambiar_meta")}>Cambiar meta</button>
+        </div>
+        <div className="page">
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:20}}>
+            <div>
+              <div className="meta-big">
+                <div style={{color:"rgba(255,255,255,.45)",fontSize:11,fontWeight:700,letterSpacing:".06em",textTransform:"uppercase",marginBottom:4}}>Semana actual</div>
+                <div style={{display:"flex",alignItems:"flex-end",gap:10,marginBottom:14}}>
+                  <div style={{fontSize:40,fontWeight:800,color:"#fff"}}>{data.meta.paginasSemana}</div>
+                  <div style={{fontSize:14,color:"rgba(255,255,255,.45)",marginBottom:8}}>páginas / semana</div>
+                  <div style={{marginLeft:"auto",background:C.lime,color:C.dark,fontSize:15,fontWeight:800,padding:"4px 14px",borderRadius:10,alignSelf:"flex-start"}}>{pct}%</div>
+                </div>
+                <div style={{height:12,background:"rgba(255,255,255,.1)",borderRadius:6,overflow:"hidden",marginBottom:8}}>
+                  <div style={{height:12,borderRadius:6,background:C.lime,width:`${pct}%`,transition:"width .5s ease"}}></div>
+                </div>
+                <div style={{fontSize:12,color:"rgba(255,255,255,.4)",marginBottom:18}}>{data.meta.paginasEstaSemanah} de {data.meta.paginasSemana} páginas leídas · quedan 3 días</div>
+                <div className="week-cal">
+                  {[{d:"LUN",done:true},{d:"MAR",done:true},{d:"MIÉ",done:true},{d:"JUE",done:true},{d:"VIE",today:true},{d:"SÁB",done:false},{d:"DOM",done:false}].map((wd,i) => (
+                    <div key={i} className={`wday ${wd.done?"wd-done":wd.today?"wd-today":"wd-pending"}`}>
+                      <div style={{fontSize:12}}>{wd.done?"✓":wd.today?"●":"○"}</div>
+                      <div className="wd-name">{wd.d}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="card">
+              <div style={{fontWeight:700,fontSize:15,marginBottom:16}}>Historial de metas</div>
+              <table style={{width:"100%",borderCollapse:"collapse"}}>
+                <thead>
+                  <tr style={{background:C.g100}}>
+                    <th style={{fontSize:10,fontWeight:700,color:C.tHint,textTransform:"uppercase",padding:"10px 12px",textAlign:"left",borderBottom:`1.5px solid ${C.g200}`}}>Semana</th>
+                    <th style={{fontSize:10,fontWeight:700,color:C.tHint,textTransform:"uppercase",padding:"10px 12px",textAlign:"left",borderBottom:`1.5px solid ${C.g200}`}}>Meta</th>
+                    <th style={{fontSize:10,fontWeight:700,color:C.tHint,textTransform:"uppercase",padding:"10px 12px",textAlign:"right",borderBottom:`1.5px solid ${C.g200}`}}>Cumplimiento</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.meta.historial.map((h,i) => {
+                    const p = Math.round((h.leidas/h.meta)*100);
+                    const chipCls = p>=100?"chip-green":p>=75?"chip-lime":"chip-red";
+                    return (
+                      <tr key={i}>
+                        <td style={{padding:"12px",borderBottom:`1px solid ${C.g200}`}}>
+                          <div style={{fontSize:13,fontWeight:600,color:C.tPrimary}}>{h.semana}</div>
+                          <div style={{fontSize:11,color:C.tHint,marginTop:2}}>{h.leidas}/{h.meta} páginas</div>
+                        </td>
+                        <td style={{padding:"12px",borderBottom:`1px solid ${C.g200}`,fontSize:14,fontWeight:600}}>{h.meta} pág</td>
+                        <td style={{padding:"12px",borderBottom:`1px solid ${C.g200}`,textAlign:"right"}}>
+                          <span className={`chip ${chipCls}`}>{p}%</span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </>
+    );
+  };
+
+  const renderPerfil = () => (
+    <>
+      <div className="topbar">
+        <div className="topbar-title">Mi perfil</div>
+        <button className="btn btn-ghost">Editar perfil</button>
+      </div>
+      <div className="page">
+        <div style={{display:"grid",gridTemplateColumns:"320px 1fr",gap:20}}>
+          <div>
+            <div className="card" style={{marginBottom:16,textAlign:"center"}}>
+              <div style={{width:80,height:80,background:`linear-gradient(135deg,${C.lime},${C.limeDk})`,borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",fontSize:28,fontWeight:800,color:C.dark,margin:"0 auto 12px",border:`3px solid ${C.g200}`}}>
+                {data.user.initials}
+              </div>
+              <div style={{fontSize:17,fontWeight:700,color:C.tPrimary}}>{data.user.nombre}</div>
+              <div style={{fontSize:12,color:C.tHint,margin:"4px 0 14px"}}>{data.user.email}</div>
+              <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8,marginTop:16}}>
+                {[
+                  { n:data.libros.filter(l=>l.estado==="TERMINADO").length, l:"Libros terminados" },
+                  { n:`🔥 ${data.racha.maxima}`, l:"Racha máxima" },
+                  { n:totalPaginas>999?`${(totalPaginas/1000).toFixed(1)}k`:totalPaginas, l:"Páginas totales" },
+                ].map((s,i) => (
+                  <div key={i} style={{background:C.g100,borderRadius:12,padding:"10px",textAlign:"center"}}>
+                    <div style={{fontSize:18,fontWeight:800,color:C.tPrimary}}>{s.n}</div>
+                    <div style={{fontSize:10,color:C.tHint,marginTop:2}}>{s.l}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="card">
+              <div style={{fontWeight:700,fontSize:15,marginBottom:14}}>Configuración</div>
+              {[
+                { ic:<span style={{fontSize:16}}>🔔</span>, bg:"rgba(124,42,142,.08)", title:"Recordatorios de lectura", sub:"8:00 am · Todos los días", toggle:true, key:"recordatorios" },
+                { ic:<span style={{fontSize:16}}>🌙</span>, bg:"rgba(41,49,60,.06)", title:"Modo oscuro", sub:"Activar tema oscuro", toggle:true, key:"modoOscuro" },
+                { ic:<span style={{fontSize:16}}>📄</span>, bg:"rgba(190,213,47,.1)", title:"Términos y condiciones", sub:"Ley 1581 de 2012", toggle:false },
+                { ic:<span style={{fontSize:16,color:"#ef4444"}}>🚪</span>, bg:"rgba(239,68,68,.07)", title:"Cerrar sesión", sub:"", toggle:false, danger:true },
+              ].map((s,i) => (
+                <div key={i} style={{display:"flex",alignItems:"center",gap:12,padding:"11px 0",borderBottom:i<3?`1px solid ${C.g200}`:"none",cursor:"pointer"}} onClick={()=>{
+                  if(s.danger) setPage("login");
+                  if(s.key) setData(d=>({...d,config:{...d.config,[s.key]:!d.config[s.key]}}));
+                }}>
+                  <div style={{width:36,height:36,borderRadius:11,display:"flex",alignItems:"center",justifyContent:"center",background:s.bg,flexShrink:0}}>{s.ic}</div>
+                  <div style={{flex:1}}>
+                    <div style={{fontSize:13,fontWeight:600,color:s.danger?"#ef4444":C.tPrimary}}>{s.title}</div>
+                    {s.sub && <div style={{fontSize:11,color:C.tHint,marginTop:1}}>{s.sub}</div>}
+                  </div>
+                  {s.toggle && (
+                    <div style={{width:44,height:24,borderRadius:12,background:data.config[s.key]?C.lime:C.g300,position:"relative",transition:"background .2s",flexShrink:0}}>
+                      <div style={{width:20,height:20,background:"#fff",borderRadius:"50%",position:"absolute",top:2,left:data.config[s.key]?22:2,transition:"left .2s",boxShadow:"0 2px 4px rgba(0,0,0,.15)"}}></div>
+                    </div>
+                  )}
+                  {!s.toggle && !s.danger && <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke={C.g400} strokeWidth={2}><polyline points="9 18 15 12 9 6"/></svg>}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <div className="card" style={{marginBottom:16}}>
+              <div style={{fontWeight:700,fontSize:15,marginBottom:16}}>Logros e insignias</div>
+              <div style={{display:"grid",gridTemplateColumns:"repeat(6,1fr)",gap:14,marginBottom:16}}>
+                {data.logros.map(l => (
+                  <div key={l.id} style={{display:"flex",flexDirection:"column",alignItems:"center",gap:6}}>
+                    <div className={`logro-badge ${l.ganado?"lb-earned":"lb-locked"}`}>{l.emoji}</div>
+                    <div style={{fontSize:10,textAlign:"center",fontWeight:600,color:l.ganado?C.purple:C.tHint}}>{l.nombre}</div>
+                  </div>
+                ))}
+              </div>
+              <div style={{background:`rgba(124,42,142,.05)`,border:`1px solid rgba(124,42,142,.12)`,borderRadius:12,padding:"12px 16px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                <div>
+                  <div style={{fontSize:13,fontWeight:600,color:C.purple}}>Próximo logro: Racha 10 días</div>
+                  <div style={{fontSize:11,color:C.tHint,marginTop:2}}>Te faltan 5 días más de racha continua</div>
+                </div>
+                <div style={{width:100}}>
+                  <div className="prog-track">
+                    <div style={{height:6,borderRadius:3,background:C.purple,width:"50%"}}></div>
+                  </div>
+                  <div style={{fontSize:10,color:C.tHint,marginTop:3,textAlign:"right"}}>5/10 días</div>
+                </div>
+              </div>
+            </div>
+
+            <div className="card">
+              <div style={{fontWeight:700,fontSize:15,marginBottom:16}}>Estadísticas globales</div>
+              <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:14}}>
+                {[
+                  { label:"Total materias", value:data.materias.length, icon:"📚" },
+                  { label:"Total notas", value:data.notas.length, icon:"📝" },
+                  { label:"Total libros", value:data.libros.length, icon:"📖" },
+                  { label:"Páginas leídas", value:totalPaginas, icon:"📄" },
+                  { label:"Sesiones registradas", value:totalSesiones, icon:"⏱" },
+                  { label:"Logros obtenidos", value:data.logros.filter(l=>l.ganado).length, icon:"🏆" },
+                ].map((s,i) => (
+                  <div key={i} className="stat-card" style={{textAlign:"center"}}>
+                    <div style={{fontSize:28,marginBottom:8}}>{s.icon}</div>
+                    <div style={{fontSize:22,fontWeight:800,color:C.tPrimary}}>{s.value}</div>
+                    <div style={{fontSize:11,color:C.tHint,marginTop:3}}>{s.label}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+
+  const renderModals = () => {
+    if (!modal) return null;
+    const close = () => setModal(null);
+
+    const modalConfigs = {
+      nueva_materia: {
+        title:"Nueva materia",
+        fields:[
+          {key:"nombre",label:"Nombre de la materia",placeholder:"Ej: Cálculo Diferencial"},
+          {key:"semestre",label:"Semestre",placeholder:"Ej: 2026-1"},
+          {key:"descripcion",label:"Descripción (opcional)",placeholder:"Descripción breve...",textarea:true},
+        ],
+        onSave:(form) => {
+          const colIdx = data.materias.length % COLORS_MATERIA.length;
+          setData(d=>({...d,materias:[...d.materias,{id:Date.now(),nombre:form.nombre,semestre:form.semestre||"2026-1",color:colIdx,notas:[],archivada:false}]}));
+          showToast("✅ Materia creada exitosamente");
+          close();
+        }
+      },
+      nueva_nota: {
+        title:"Nueva nota",
+        fields:[
+          {key:"texto",label:"Texto de la nota",placeholder:"Escribe tu nota aquí...",textarea:true},
+          {key:"enlace",label:"Enlace (opcional)",placeholder:"https://..."},
+        ],
+        onSave:(form) => {
+          if(!activeMateria) return;
+          setData(d=>({...d,notas:[{id:Date.now(),materiaId:activeMateria.id,texto:form.texto,enlace:form.enlace||null,archivo:null,creadoEn:"Ahora"},...d.notas]}));
+          showToast("✅ Nota creada exitosamente");
+          close();
+        }
+      },
+      nuevo_libro: {
+        title:"Agregar libro",
+        fields:[
+          {key:"titulo",label:"Título del libro",placeholder:"Ej: El Principito"},
+          {key:"autor",label:"Autor",placeholder:"Ej: Antoine de Saint-Exupéry"},
+          {key:"totalPaginas",label:"Total de páginas",placeholder:"Ej: 350",type:"number"},
+        ],
+        onSave:(form) => {
+          setData(d=>({...d,libros:[...d.libros,{id:Date.now(),titulo:form.titulo,autor:form.autor,tipo:"FÍSICO",totalPaginas:parseInt(form.totalPaginas)||100,paginasLeidas:0,estado:"PENDIENTE",sesiones:[]}]}));
+          showToast("✅ Libro agregado a tu biblioteca");
+          close();
+        }
+      },
+      nueva_sesion: {
+        title:"Nueva sesión de lectura",
+        fields:[
+          {key:"paginaInicio",label:"Página de inicio",placeholder:"Ej: 45",type:"number"},
+          {key:"paginaFin",label:"Página final",placeholder:"Ej: 78",type:"number"},
+          {key:"duracion",label:"Duración (minutos)",placeholder:"Ej: 40",type:"number"},
+          {key:"notas",label:"Notas de la sesión (opcional)",placeholder:"¿Qué leíste hoy?",textarea:true},
+        ],
+        onSave:(form) => {
+          const pages = Math.max(0,(parseInt(form.paginaFin)||0)-(parseInt(form.paginaInicio)||0));
+          setData(d=>({...d,actividadSemanal:d.actividadSemanal.map((a,i)=>i===4?{...a,pags:a.pags+pages}:a),racha:{...d.racha,actual:d.racha.actual+1}}));
+          showToast(`✅ Sesión registrada — ${pages} páginas leídas`);
+          close();
+        }
+      },
+      nueva_sesion_libro: {
+        title:`Registrar sesión — ${activeLibro?.titulo}`,
+        fields:[
+          {key:"paginaInicio",label:"Página de inicio",placeholder:"Ej: 45",type:"number"},
+          {key:"paginaFin",label:"Página final",placeholder:"Ej: 78",type:"number"},
+          {key:"duracion",label:"Duración (minutos)",placeholder:"Ej: 40",type:"number"},
+        ],
+        onSave:(form) => {
+          const pf = parseInt(form.paginaFin)||0;
+          setData(d=>({...d,libros:d.libros.map(l=>l.id===activeLibro?.id?{...l,paginasLeidas:Math.min(l.totalPaginas,Math.max(l.paginasLeidas,pf)),estado:pf>=l.totalPaginas?"TERMINADO":"LEYENDO"}:l)}));
+          showToast("✅ Sesión registrada exitosamente");
+          close();
+          setActiveLibro(null);
+        }
+      },
+      cambiar_meta: {
+        title:"Cambiar meta semanal",
+        fields:[
+          {key:"meta",label:"Páginas por semana",placeholder:"Ej: 350",type:"number"},
+        ],
+        onSave:(form) => {
+          setData(d=>({...d,meta:{...d.meta,paginasSemana:parseInt(form.meta)||d.meta.paginasSemana}}));
+          showToast("✅ Meta actualizada");
+          close();
+        }
+      }
+    };
+
+    const cfg = modalConfigs[modal];
+    if (!cfg) return null;
+
+    return <ModalForm config={cfg} onClose={close}/>;
+  };
+
+  return (
+    <div className="app">
+      <style>{css}</style>
+      {renderSidebar()}
+      <div className="main">
+        {activePage==="dashboard" && renderDashboard()}
+        {activePage==="materias" && renderMaterias()}
+        {activePage==="biblioteca" && renderBiblioteca()}
+        {activePage==="metas" && renderMetas()}
+        {activePage==="perfil" && renderPerfil()}
+      </div>
+      {renderModals()}
+      {toast && <div className="toast"><span>✅</span>{toast}</div>}
+    </div>
+  );
+}
+
+function ModalForm({ config, onClose }) {
+  const [form, setForm] = useState({});
+  return (
+    <div className="modal-overlay" onClick={e=>{if(e.target===e.currentTarget)onClose();}}>
+      <div className="modal">
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:20}}>
+          <div className="modal-title" style={{margin:0}}>{config.title}</div>
+          <button onClick={onClose} style={{background:"none",border:"none",cursor:"pointer",color:C.tHint,fontSize:20}}>×</button>
+        </div>
+        {config.fields.map(f => (
+          <div key={f.key} style={{marginBottom:14}}>
+            <div className="field-label">{f.label}</div>
+            {f.textarea ? (
+              <textarea className="field-textarea" rows={3} placeholder={f.placeholder} value={form[f.key]||""} onChange={e=>setForm({...form,[f.key]:e.target.value})}/>
+            ) : (
+              <input className="field-input" type={f.type||"text"} placeholder={f.placeholder} value={form[f.key]||""} onChange={e=>setForm({...form,[f.key]:e.target.value})}/>
+            )}
+          </div>
+        ))}
+        <div style={{display:"flex",gap:10,marginTop:4}}>
+          <button className="btn btn-ghost" style={{flex:1,justifyContent:"center"}} onClick={onClose}>Cancelar</button>
+          <button className="btn btn-lime" style={{flex:1,justifyContent:"center"}} onClick={()=>config.onSave(form)}>Guardar</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function NotaCard({ nota, color, onDelete }) {
+  return (
+    <div className="nota-card">
+      <div className="nota-bar" style={{background:color}}></div>
+      <div className="nota-content">
+        {nota.texto && <div style={{fontSize:13,color:C.tPrimary,lineHeight:1.65,marginBottom:8}}>{nota.texto}</div>}
+        {nota.enlace && (
+          <div className="link-chip">
+            <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="#0369a1" strokeWidth={2}><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+            <span style={{fontSize:11.5,color:"#0369a1",flex:1,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{nota.enlace}</span>
+            <span style={{background:"#e0f2fe",color:"#0369a1",fontSize:10,fontWeight:700,padding:"3px 8px",borderRadius:5,flexShrink:0}}>Abrir ↗</span>
+          </div>
+        )}
+        {nota.archivo && (
+          <div className="file-chip">
+            <div style={{width:28,height:32,borderRadius:6,background:nota.archivo.tipo==="PDF"?C.purple:"#f97316",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+              <svg width={12} height={14} viewBox="0 0 24 28" fill="none" stroke="#fff" strokeWidth={2}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            </div>
+            <div style={{flex:1,minWidth:0}}>
+              <div style={{fontSize:12,fontWeight:600,color:C.tPrimary,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{nota.archivo.nombre}</div>
+              <div style={{fontSize:10,color:C.tHint,marginTop:1}}>{nota.archivo.tamano} · {nota.archivo.tipo}</div>
+            </div>
+            <div style={{background:`rgba(124,42,142,.1)`,color:C.purple,fontSize:11,fontWeight:600,padding:"4px 10px",borderRadius:7,flexShrink:0}}>Ver</div>
+          </div>
+        )}
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:8,paddingTop:8,borderTop:`1px solid ${C.g200}`}}>
+          <span style={{fontSize:11,color:C.tHint}}>{nota.creadoEn}</span>
+          <div style={{display:"flex",gap:6}}>
+            <button className="act-btn act-edit" title="Editar"><EditIcon/></button>
+            <button className="act-btn act-del" title="Eliminar" onClick={onDelete}><TrashIcon/></button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Icon components
+function BookIcon({ size=24, color=C.purple }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2}>
+      <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+    </svg>
+  );
+}
+function HomeIcon() {
+  return <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>;
+}
+function LibraryIcon() {
+  return <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>;
+}
+function ChartIcon({ size=16 }) {
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>;
+}
+function UserIcon() {
+  return <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>;
+}
+function NoteIcon() {
+  return <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke={C.limeDk} strokeWidth={2}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>;
+}
+function SearchIcon() {
+  return <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke={C.g400} strokeWidth={2}><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>;
+}
+function EditIcon() {
+  return <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke={C.purple} strokeWidth={2}><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>;
+}
+function StarIcon({ size=20, color="#fff" }) {
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2}><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>;
+}
+function TrashIcon() {
+  return <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth={2}><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>;
+}

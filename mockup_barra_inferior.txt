@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ReadTrack UTS - Sesión de Lectura</title>
+
+<style>
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    font-family:Segoe UI, sans-serif;
+}
+
+body{
+    background:#f5f6f8;
+    min-height:100vh;
+}
+
+/* Barra de sesión */
+.reading-session-bar{
+    position:fixed;
+    bottom:0;
+    left:0;
+    right:0;
+
+    height:95px;
+
+    background:#273142;
+    color:white;
+
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+
+    padding:0 30px;
+
+    box-shadow:0 -4px 12px rgba(0,0,0,.15);
+}
+
+/* Info libro */
+.session-info{
+    display:flex;
+    align-items:center;
+    gap:18px;
+}
+
+.badge{
+    background:#c7dd2a;
+    color:#273142;
+    padding:8px 14px;
+    border-radius:999px;
+    font-weight:600;
+    font-size:14px;
+}
+
+.book-info{
+    display:flex;
+    flex-direction:column;
+    gap:4px;
+}
+
+.book-title{
+    font-size:22px;
+    font-weight:600;
+}
+
+.book-author{
+    color:#d6d6d6;
+    font-size:16px;
+}
+
+/* Controles */
+.session-controls{
+    display:flex;
+    align-items:center;
+    gap:14px;
+}
+
+.control-btn{
+    width:55px;
+    height:55px;
+    border:none;
+    border-radius:50%;
+    cursor:pointer;
+    font-size:22px;
+    transition:.2s;
+}
+
+.control-btn:hover{
+    transform:scale(1.05);
+}
+
+.play{
+    background:white;
+}
+
+.pause{
+    background:#c7dd2a;
+}
+
+.stop{
+    background:#ff6464;
+    color:white;
+}
+
+/* Estadísticas */
+.session-stats{
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+    font-size:16px;
+}
+
+.session-stats strong{
+    color:#c7dd2a;
+}
+
+/* Contador de páginas */
+.page-counter{
+    display:flex;
+    align-items:center;
+    gap:12px;
+}
+
+.counter-btn{
+    width:40px;
+    height:40px;
+    border:none;
+    border-radius:8px;
+    background:#c7dd2a;
+    color:#273142;
+    font-size:22px;
+    font-weight:bold;
+    cursor:pointer;
+}
+
+.counter-btn:hover{
+    opacity:.9;
+}
+
+#currentPages{
+    min-width:50px;
+    text-align:center;
+    font-size:20px;
+    font-weight:600;
+}
+
+/* Barra progreso */
+.progress-wrapper{
+    position:fixed;
+    bottom:0;
+    left:0;
+    right:0;
+    height:6px;
+    background:#475264;
+}
+
+.progress-bar{
+    width:2%;
+    height:100%;
+    background:#c7dd2a;
+    transition:.3s;
+}
+
+/* Demo contenido */
+.content{
+    padding:40px;
+}
+
+.card{
+    background:white;
+    border-radius:16px;
+    padding:30px;
+    box-shadow:0 4px 10px rgba(0,0,0,.06);
+}
+</style>
+</head>
+<body>
+
+<div class="content">
+    <div class="card">
+        <h1>Mi Biblioteca</h1>
+        <p>Ejemplo de interfaz con sesión de lectura activa.</p>
+    </div>
+</div>
+
+<!-- Barra inferior -->
+<div class="reading-session-bar">
+
+    <div class="session-info">
+
+        <div class="badge">
+            📖 Sesión activa
+        </div>
+
+        <div class="book-info">
+            <div class="book-title">
+                The Architecture of Happiness
+            </div>
+
+            <div class="book-author">
+                Alain de Botton
+            </div>
+        </div>
+
+    </div>
+
+    <div class="session-controls">
+        <button class="control-btn play" id="playBtn">▶</button>
+        <button class="control-btn pause" id="pauseBtn">⏸</button>
+        <button class="control-btn stop" id="stopBtn">⏹</button>
+    </div>
+
+    <div class="session-stats">
+        <span>⏱ Tiempo: <strong id="timer">25:00</strong></span>
+        <span>📄 Progreso: <strong id="pageProgress">12 / 560 páginas</strong></span>
+    </div>
+
+    <div class="page-counter">
+        <button class="counter-btn" onclick="changePages(-1)">−</button>
+
+        <span id="currentPages">12</span>
+
+        <button class="counter-btn" onclick="changePages(1)">+</button>
+    </div>
+
+</div>
+
+<div class="progress-wrapper">
+    <div class="progress-bar" id="progressBar"></div>
+</div>
+
+<script>
+
+let pagesRead = 12;
+const totalPages = 560;
+
+function changePages(value){
+
+    pagesRead += value;
+
+    if(pagesRead < 0){
+        pagesRead = 0;
+    }
+
+    if(pagesRead > totalPages){
+        pagesRead = totalPages;
+    }
+
+    document.getElementById("currentPages").textContent = pagesRead;
+
+    document.getElementById("pageProgress").textContent =
+        `${pagesRead} / ${totalPages} páginas`;
+
+    let percent = (pagesRead / totalPages) * 100;
+
+    document.getElementById("progressBar").style.width =
+        percent + "%";
+}
+
+/* Cronómetro */
+
+let seconds = 1500; // 25 minutos
+let interval;
+
+function formatTime(){
+
+    let mins = Math.floor(seconds / 60);
+    let secs = seconds % 60;
+
+    mins = String(mins).padStart(2,'0');
+    secs = String(secs).padStart(2,'0');
+
+    document.getElementById("timer").textContent =
+        `${mins}:${secs}`;
+}
+
+function startTimer(){
+
+    clearInterval(interval);
+
+    interval = setInterval(() => {
+
+        seconds++;
+
+        let mins = Math.floor(seconds / 60);
+        let secs = seconds % 60;
+
+        mins = String(mins).padStart(2,'0');
+        secs = String(secs).padStart(2,'0');
+
+        document.getElementById("timer").textContent =
+            `${mins}:${secs}`;
+
+    },1000);
+}
+
+function pauseTimer(){
+    clearInterval(interval);
+}
+
+function stopTimer(){
+
+    clearInterval(interval);
+
+    alert(
+        `Sesión finalizada\n\nTiempo: ${document.getElementById("timer").textContent}\nPáginas leídas: ${pagesRead}`
+    );
+}
+
+document.getElementById("playBtn").addEventListener("click", startTimer);
+document.getElementById("pauseBtn").addEventListener("click", pauseTimer);
+document.getElementById("stopBtn").addEventListener("click", stopTimer);
+
+formatTime();
+
+</script>
+
+</body>
+</html>
