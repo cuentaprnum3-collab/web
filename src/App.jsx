@@ -3934,7 +3934,7 @@ function RenderModals({ modal, setModal, data, setData, activeMateria, activeLib
               <div style={{ marginTop: 4 }}>👥 Invitaciones: <span style={{ fontWeight: 600 }}>{emailsComparticion.split(',').filter(e => e.trim()).length}</span></div>
             </div>
             {activeMateria?.grupoId && (
-              <div style={{ marginTop: 10, paddingTop: 10, borderTop: `1px solid ${C.g300}` }}>
+              <div style={{ display: 'none', marginTop: 10, paddingTop: 10, borderTop: `1px solid ${C.g300}` }}>
                 <div style={{ fontSize: 11, color: C.tHint, marginBottom: 4 }}>
                   ID del grupo (respaldo manual, por si la invitación no llega):
                 </div>
