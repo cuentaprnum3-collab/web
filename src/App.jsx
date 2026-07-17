@@ -351,6 +351,14 @@ const buildCss = (C) => `
       box-shadow:0 10px 24px rgba(0,0,0,.28) !important;
     }
 
+    /* Materias (detalle): las 4 tarjetas de accion (crear nota, foto, audio,
+       archivo) siempre en 2x2 en movil, mas compactas */
+    .materia-actions{grid-template-columns:repeat(2,1fr) !important;gap:10px !important;}
+    .action-card{padding:14px !important;min-height:auto !important;gap:8px !important;}
+    .action-desc{display:none !important;}
+    .action-title{font-size:13.5px !important;}
+    .action-cta{font-size:11px !important;}
+
     /* Buscadores y filas de acciones del topbar */
     .search-wrap{width:100% !important;}
     .topbar-actions{width:100%;flex-wrap:wrap;row-gap:10px;}
@@ -2064,7 +2072,7 @@ export default function ReadTrackApp() {
                 <SearchIcon />
                 <input placeholder="Buscar en esta materia..." value={search} onChange={(e) => setSearch(e.target.value)} />
               </div>
-              <button className="btn btn-lime" onClick={() => setModal('nueva_nota')}>
+              <button className="btn btn-lime fab-nueva-materia" onClick={() => setModal('nueva_nota')}>
                 + Nueva nota
               </button>
             </div>
