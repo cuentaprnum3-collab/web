@@ -316,6 +316,7 @@ const buildCss = (C) => `
     .dashboard-header .topbar{padding:14px 16px 14px 64px;}
     .page{padding:16px;}
     .stats-grid{margin:12px 0 0;}
+    .stat-card{display:none;}
 
     /* Grids que colapsan a una sola columna */
     .stats-grid,
@@ -736,6 +737,32 @@ export default function ReadTrackApp() {
     }
     setActiveMateria(materia);
     setModal('nueva_nota');
+  };
+
+  const openFotoRapida = async () => {
+    let materia = findNotasRapidasMateria(data.materias);
+    if (!materia) {
+      materia = await ensureNotasRapidasMateria();
+    }
+    if (!materia) {
+      showToast('No se pudo encontrar o crear la materia Notas rápidas.');
+      return;
+    }
+    setActiveMateria(materia);
+    setModal('agregar_foto');
+  };
+
+  const openAudioRapido = async () => {
+    let materia = findNotasRapidasMateria(data.materias);
+    if (!materia) {
+      materia = await ensureNotasRapidasMateria();
+    }
+    if (!materia) {
+      showToast('No se pudo encontrar o crear la materia Notas rápidas.');
+      return;
+    }
+    setActiveMateria(materia);
+    setModal('agregar_audio');
   };
 
   const showToast = (msg) => {
@@ -1896,12 +1923,36 @@ export default function ReadTrackApp() {
                   ))}
                 </div>
               </div>
-              <button className="btn btn-lime" onClick={openNotaRapida}>
-                Crear nota rápida
-              </button>
-              <button className="btn btn-lime" style={{ marginTop: 8 }} onClick={() => setModal('nueva_materia')}>
-                Agregar materia
-              </button>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                <button
+                  className="btn btn-lime"
+                  style={{ minWidth: 0, height: 'auto', minHeight: 44, padding: '10px 10px', textAlign: 'center', whiteSpace: 'normal', lineHeight: 1.25 }}
+                  onClick={openNotaRapida}
+                >
+                  Crear nota rápida
+                </button>
+                <button
+                  className="btn btn-lime"
+                  style={{ minWidth: 0, height: 'auto', minHeight: 44, padding: '10px 10px', textAlign: 'center', whiteSpace: 'normal', lineHeight: 1.25 }}
+                  onClick={() => setModal('nueva_materia')}
+                >
+                  Agregar materia
+                </button>
+                <button
+                  className="btn btn-lime"
+                  style={{ minWidth: 0, height: 'auto', minHeight: 44, padding: '10px 10px', textAlign: 'center', whiteSpace: 'normal', lineHeight: 1.25 }}
+                  onClick={openFotoRapida}
+                >
+                  Tomar foto
+                </button>
+                <button
+                  className="btn btn-lime"
+                  style={{ minWidth: 0, height: 'auto', minHeight: 44, padding: '10px 10px', textAlign: 'center', whiteSpace: 'normal', lineHeight: 1.25 }}
+                  onClick={openAudioRapido}
+                >
+                  Grabar audio
+                </button>
+              </div>
             </div>
           </div>
         </div>
