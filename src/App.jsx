@@ -316,17 +316,26 @@ const buildCss = (C) => `
     .topbar{flex-wrap:wrap;row-gap:12px;padding:14px 16px 14px 64px;}
     .dashboard-header .topbar{padding:14px 16px 14px 64px;}
     .page{padding:16px;}
-    .stats-grid{margin:12px 0 0;}
 
     /* Inicio: en movil se muestra en el orden acciones -> stats -> card
        (en escritorio no cambia nada, .dash-desktop-only y .dash-desktop-row
-       siguen visibles y .dash-mobile-order permanece oculto) */
-    .dash-desktop-only{display:none;}
-    .dash-desktop-row{display:none;}
+       siguen visibles y .dash-mobile-order permanece oculto).
+       Los !important son necesarios porque esos divs tienen un style
+       inline con display:grid que si no, gana por sobre esta regla. */
+    .dash-desktop-only{display:none !important;}
+    .dash-desktop-row{display:none !important;}
     .dash-mobile-order{display:flex;flex-direction:column;gap:20px;margin-bottom:20px;}
 
+    /* Stats: siempre en una sola fila de 3, mas compactas */
+    .stats-grid{grid-template-columns:repeat(3,1fr) !important;gap:8px !important;margin:12px 16px 0 !important;}
+    .stat-card{padding:12px 8px !important;min-height:auto !important;}
+    .stat-card-row{gap:6px !important;}
+    .stat-icon{width:32px !important;height:32px !important;}
+    .stat-icon svg{width:16px !important;height:16px !important;}
+    .stat-value{font-size:18px !important;line-height:1.1 !important;}
+    .stat-label{font-size:9.5px !important;line-height:1.2 !important;}
+
     /* Grids que colapsan a una sola columna */
-    .stats-grid,
     .mat-grid,
     .badge-grid,
     .rt-grid-stack{grid-template-columns:1fr !important;}
