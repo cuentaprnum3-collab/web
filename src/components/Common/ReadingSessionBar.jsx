@@ -126,7 +126,7 @@ export function ReadingSessionBar({ session, onUpdateSession, onEndSession, C })
 
   return (
     <>
-      <div style={{
+      <div className="session-bar" style={{
         position: 'fixed',
         bottom: 0,
         left: '240px',
@@ -263,7 +263,7 @@ export function ReadingSessionBar({ session, onUpdateSession, onEndSession, C })
       </div>
 
       {/* Barra de progreso */}
-      <div style={{
+      <div className="session-progress" style={{
         position: 'fixed',
         bottom: 0,
         left: '240px',

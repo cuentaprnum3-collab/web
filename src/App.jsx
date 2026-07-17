@@ -288,6 +288,81 @@ const buildCss = (C) => `
   /* Breadcrumb */
   .bc{font-size:12px;color:${C.tHint};margin-bottom:6px;}
   .bc span{color:${C.tPrimary};font-weight:600;}
+
+  /* ============================================================
+     RESPONSIVE / MOBILE (solo se activa por debajo de los breakpoints,
+     no modifica ninguna regla de arriba usada por la version de escritorio)
+     ============================================================ */
+  .mobile-menu-btn{display:none;}
+  .sidebar-overlay{display:none;}
+
+  @media (max-width:900px){
+    .sidebar{transform:translateX(-100%);}
+    .sidebar.sidebar-open{transform:translateX(0);}
+    .main{margin-left:0;}
+    .mobile-menu-btn{
+      display:flex;align-items:center;justify-content:center;
+      position:fixed;top:14px;left:14px;z-index:150;
+      width:42px;height:42px;border-radius:12px;border:none;
+      background:${C.dark};color:#fff;cursor:pointer;
+      box-shadow:0 4px 14px rgba(0,0,0,.22);
+    }
+    .sidebar-overlay{
+      display:block;position:fixed;inset:0;background:rgba(0,0,0,.45);
+      z-index:99;
+    }
+    /* Topbars y contenido */
+    .topbar{flex-wrap:wrap;row-gap:12px;padding:14px 16px 14px 64px;}
+    .dashboard-header .topbar{padding:14px 16px 14px 64px;}
+    .page{padding:16px;}
+    .stats-grid{margin:12px 0 0;}
+
+    /* Grids que colapsan a una sola columna */
+    .stats-grid,
+    .mat-grid,
+    .badge-grid,
+    .rt-grid-stack{grid-template-columns:1fr !important;}
+
+    /* Buscadores y filas de acciones del topbar */
+    .search-wrap{width:100% !important;}
+    .topbar-actions{width:100%;flex-wrap:wrap;row-gap:10px;}
+    .topbar-actions .search-wrap{flex:1 1 160px;}
+    .rt-mobile-wrap{flex-wrap:wrap;row-gap:10px;}
+    .rt-mobile-scroll-x{overflow-x:auto;flex-wrap:nowrap !important;-webkit-overflow-scrolling:touch;padding-bottom:4px;}
+
+    /* Tablas: permitir scroll horizontal en vez de romper el layout */
+    .table-wrap{overflow-x:auto;}
+    .table-wrap table{min-width:520px;}
+
+    /* Modales */
+    .modal-overlay{padding:16px;align-items:flex-start;padding-top:8vh;}
+    .modal{max-width:100%;padding:20px;max-height:84vh;}
+
+    /* Login */
+    .login-page{flex-direction:column;min-height:auto;}
+    .login-left{width:100%;padding:32px 24px;}
+    .login-right{padding:32px 24px;}
+
+    /* Calendario */
+    .rt-cal-wrap{flex-direction:column;}
+    .rt-cal-side{width:100% !important;padding:24px 20px !important;}
+    .rt-cal-side-box{width:100% !important;}
+    .rt-cal-main{padding:20px 16px !important;}
+    .rt-cal-months{grid-template-columns:repeat(6,1fr) !important;row-gap:10px;font-size:10px !important;}
+
+    /* Barra flotante de sesion de lectura activa (definida en ReadingSessionBar.jsx) */
+    .session-bar{left:0 !important;padding:0 16px !important;overflow-x:auto;}
+    .session-progress{left:0 !important;}
+
+    /* Toast */
+    .toast{left:16px;right:16px;bottom:16px;}
+  }
+
+  @media (max-width:480px){
+    .badge-grid{grid-template-columns:1fr 1fr !important;}
+    .login-features{display:none;}
+    .rt-cal-months{grid-template-columns:repeat(4,1fr) !important;}
+  }
 `;
 
 export default function ReadTrackApp() {
@@ -326,6 +401,7 @@ export default function ReadTrackApp() {
   const [convertirAGrupo, setConvertirAGrupo] = useState(false);
   const [invitacionesPendientes, setInvitacionesPendientes] = useState([]);
   const [cargandoInvitaciones, setCargandoInvitaciones] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     setProfileForm({
@@ -1114,24 +1190,26 @@ export default function ReadTrackApp() {
           <div style={{ color: 'rgba(255,255,255,.45)', fontSize: 13, textAlign: 'center', marginBottom: 40, position: 'relative', zIndex: 1 }}>
             Tu hábito lector y estudio, siempre organizados
           </div>
-          {[
-            { color: 'rgba(124,42,142,.3)', ic: <BookIcon size={18} color={C.lime} />, txt: <>
-              <b style={{ color: '#fff' }}>Organiza tus materias</b> — notas, apuntes, videos y archivos en un solo lugar
-            </> },
-            { color: 'rgba(190,213,47,.2)', ic: <ChartIcon size={18} />, txt: <>
-              <b style={{ color: '#fff' }}>Sigue tu progreso lector</b> — estadísticas, metas semanales y rachas
-            </> },
-            { color: 'rgba(255,255,255,.1)', ic: <StarIcon size={18} color="rgba(255,255,255,.7)" />, txt: <>
-              <b style={{ color: '#fff' }}>Gana logros</b> — insignias por constancia y metas cumplidas
-            </> },
-          ].map((f, i) => (
-            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 18, position: 'relative', zIndex: 1, width: '100%' }}>
-              <div style={{ width: 40, height: 40, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', background: f.color, flexShrink: 0 }}>
-                {f.ic}
+          <div className="login-features">
+            {[
+              { color: 'rgba(124,42,142,.3)', ic: <BookIcon size={18} color={C.lime} />, txt: <>
+                <b style={{ color: '#fff' }}>Organiza tus materias</b> — notas, apuntes, videos y archivos en un solo lugar
+              </> },
+              { color: 'rgba(190,213,47,.2)', ic: <ChartIcon size={18} />, txt: <>
+                <b style={{ color: '#fff' }}>Sigue tu progreso lector</b> — estadísticas, metas semanales y rachas
+              </> },
+              { color: 'rgba(255,255,255,.1)', ic: <StarIcon size={18} color="rgba(255,255,255,.7)" />, txt: <>
+                <b style={{ color: '#fff' }}>Gana logros</b> — insignias por constancia y metas cumplidas
+              </> },
+            ].map((f, i) => (
+              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 18, position: 'relative', zIndex: 1, width: '100%' }}>
+                <div style={{ width: 40, height: 40, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', background: f.color, flexShrink: 0 }}>
+                  {f.ic}
+                </div>
+                <div style={{ color: 'rgba(255,255,255,.75)', fontSize: 13.5, lineHeight: 1.5 }}>{f.txt}</div>
               </div>
-              <div style={{ color: 'rgba(255,255,255,.75)', fontSize: 13.5, lineHeight: 1.5 }}>{f.txt}</div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
 
         <div className="login-right">
@@ -1733,7 +1811,7 @@ export default function ReadTrackApp() {
         </div>
 
         <div className="page">
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 360px', gap: 20, marginBottom: 20 }}>
+          <div className="rt-grid-stack" style={{ display: 'grid', gridTemplateColumns: '1fr 360px', gap: 20, marginBottom: 20 }}>
             <div className="card">
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
                 <div style={{ fontWeight: 700, fontSize: 15, color: C.tPrimary }}>Actividad semanal — páginas leídas</div>
@@ -1883,7 +1961,7 @@ export default function ReadTrackApp() {
                 <span className="chip chip-purple">{activeMateria.semestre}</span>
               </div>
             </div>
-            <div style={{ display: 'flex', gap: 10 }}>
+            <div className="topbar-actions" style={{ display: 'flex', gap: 10 }}>
               <div className="search-wrap" style={{ width: 240 }}>
                 <SearchIcon />
                 <input placeholder="Buscar en esta materia..." value={search} onChange={(e) => setSearch(e.target.value)} />
@@ -1917,7 +1995,7 @@ export default function ReadTrackApp() {
               </div>
             </div>
 
-            <div style={{ display: 'flex', gap: 10, marginBottom: 20, borderBottom: `1.5px solid ${C.g200}`, paddingBottom: 14 }}>
+            <div className="rt-mobile-scroll-x" style={{ display: 'flex', gap: 10, marginBottom: 20, borderBottom: `1.5px solid ${C.g200}`, paddingBottom: 14 }}>
               {[
                 { id: 'todas', label: 'Todas', count: conteos.todas },
                 { id: 'nota', label: 'Notas', count: conteos.nota },
@@ -2046,7 +2124,7 @@ export default function ReadTrackApp() {
             <div className="topbar-title">Materias</div>
             <div className="topbar-sub">Semestre 2026-1 · {propias.length} propias · {grupo.length} en grupo</div>
           </div>
-          <div style={{ display: 'flex', gap: 10 }}>
+          <div className="topbar-actions" style={{ display: 'flex', gap: 10 }}>
             <div className="search-wrap" style={{ width: 240 }}>
               <SearchIcon />
               <input placeholder="Buscar materia..." value={search} onChange={(e) => setSearch(e.target.value)} />
@@ -2277,7 +2355,7 @@ export default function ReadTrackApp() {
           </button>
         </div>
         <div className="page">
-          <div style={{ display: 'flex', gap: 12, marginBottom: 20, alignItems: 'center' }}>
+          <div className="rt-mobile-wrap" style={{ display: 'flex', gap: 12, marginBottom: 20, alignItems: 'center' }}>
             <div className="search-wrap" style={{ flex: 1 }}>
               <SearchIcon />
               <input placeholder="Buscar por título o autor..." value={search} onChange={(e) => setSearch(e.target.value)} />
@@ -2434,7 +2512,7 @@ export default function ReadTrackApp() {
           </button>
         </div>
         <div className="page">
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+          <div className="rt-grid-stack" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
             <div>
               <div className="meta-big">
                 <div style={{ color: 'rgba(255,255,255,.45)', fontSize: 11, fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase', marginBottom: 4 }}>
@@ -2621,14 +2699,14 @@ export default function ReadTrackApp() {
         </div>
 
         <div className="page" style={{ paddingBottom: 24 }}>
-          <div style={{ display: 'flex', gap: 20, background: C.white, borderRadius: 22, overflow: 'hidden', border: '1px solid #374151' }}>
-            <div style={{ width: 380, background: C.dark, padding: '40px 36px', display: 'flex', flexDirection: 'column', flexShrink: 0, border: '1px solid #374151' }}>
+          <div className="rt-cal-wrap" style={{ display: 'flex', gap: 20, background: C.white, borderRadius: 22, overflow: 'hidden', border: '1px solid #374151' }}>
+            <div className="rt-cal-side" style={{ width: 380, background: C.dark, padding: '40px 36px', display: 'flex', flexDirection: 'column', flexShrink: 0, border: '1px solid #374151' }}>
               <div>
                 <div style={{ color: '#9bdf2e', fontSize: 20, fontWeight: 300, lineHeight: 1, letterSpacing: '1px' }}>{currentMonth.getFullYear()}</div>
                 <div style={{ color: '#fff', fontSize: 50, fontWeight: 300, lineHeight: 1, letterSpacing: '1px', textTransform: 'uppercase', marginTop: 12 }}>{getDayName(selectedDate)}</div>
                 <div style={{ color: '#a739c0', fontSize: 20, fontWeight: 300, marginTop: 6 }}>{getMonthName(selectedDate)} {selectedDate.getDate()}</div>
               </div>
-              <div style={{ width: 308, height: 280, background: C.white, marginTop: 32, padding: 20, overflowY: 'scroll', border: '1px solid #374151', borderRadius: 18 }}>
+              <div className="rt-cal-side-box" style={{ width: 308, height: 280, background: C.white, marginTop: 32, padding: 20, overflowY: 'scroll', border: '1px solid #374151', borderRadius: 18 }}>
                 <div style={{ display: 'grid', gap: 20 }}>
                   <div>
                     <div style={{ fontSize: 13, fontWeight: 700, color: '#7C2A8E', marginBottom: 12 }}>Sesiones de lectura</div>
@@ -2692,8 +2770,8 @@ export default function ReadTrackApp() {
               </div>
             </div>
 
-            <div style={{ flex: 1, background: C.white, padding: '40px 40px', position: 'relative', display: 'flex', flexDirection: 'column', border: `1px solid ${C.white}`, borderRadius: 14 }}>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, 1fr)', textAlign: 'center', color: C.g400, fontSize: 11, textTransform: 'uppercase', letterSpacing: '1px', marginBottom: 20 }}>
+            <div className="rt-cal-main" style={{ flex: 1, background: C.white, padding: '40px 40px', position: 'relative', display: 'flex', flexDirection: 'column', border: `1px solid ${C.white}`, borderRadius: 14 }}>
+              <div className="rt-cal-months" style={{ display: 'grid', gridTemplateColumns: 'repeat(12, 1fr)', textAlign: 'center', color: C.g400, fontSize: 11, textTransform: 'uppercase', letterSpacing: '1px', marginBottom: 20 }}>
                 {MONTH_NAMES_SHORT.map((month, index) => (
                   <div
                     key={month}
@@ -2805,7 +2883,7 @@ export default function ReadTrackApp() {
         <div>
           <div className="topbar-title">Mi perfil</div>
         </div>
-        <div style={{ display: 'flex', gap: 10 }}>
+        <div className="topbar-actions" style={{ display: 'flex', gap: 10 }}>
           <button className="btn btn-ghost" onClick={handleOpenEditProfile}>Editar perfil</button>
           <button
             className="btn btn-ghost"
@@ -2817,7 +2895,7 @@ export default function ReadTrackApp() {
         </div>
       </div>
       <div className="page">
-        <div style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: 20 }}>
+        <div className="rt-grid-stack" style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: 20 }}>
           <div>
             <div className="card" style={{ marginBottom: 16, textAlign: 'center' }}>
               <div
@@ -3049,7 +3127,25 @@ export default function ReadTrackApp() {
   return (
     <div className="app">
       <style>{css}</style>
-      <div className="sidebar">
+
+      <button
+        type="button"
+        className="mobile-menu-btn"
+        onClick={() => setMobileMenuOpen(v => !v)}
+        aria-label="Abrir menú"
+      >
+        <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round">
+          <line x1="3" y1="6" x2="21" y2="6" />
+          <line x1="3" y1="12" x2="21" y2="12" />
+          <line x1="3" y1="18" x2="21" y2="18" />
+        </svg>
+      </button>
+
+      {mobileMenuOpen && (
+        <div className="sidebar-overlay" onClick={() => setMobileMenuOpen(false)}></div>
+      )}
+
+      <div className={`sidebar ${mobileMenuOpen ? 'sidebar-open' : ''}`}>
         <div className="sb-logo">
           <div className="sb-icon">
             <AppLogoIcon size={36} />
@@ -3073,6 +3169,7 @@ export default function ReadTrackApp() {
                 if (n.id === 'materias') {
                   setActiveMateriaTab('propias');
                 }
+                setMobileMenuOpen(false);
               }}
             >
               <span className="nav-ic">{n.icon}</span>
