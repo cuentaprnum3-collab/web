@@ -295,6 +295,7 @@ const buildCss = (C) => `
      ============================================================ */
   .mobile-menu-btn{display:none;}
   .sidebar-overlay{display:none;}
+  .dash-mobile-order{display:none;}
 
   @media (max-width:900px){
     .sidebar{transform:translateX(-100%);}
@@ -316,7 +317,13 @@ const buildCss = (C) => `
     .dashboard-header .topbar{padding:14px 16px 14px 64px;}
     .page{padding:16px;}
     .stats-grid{margin:12px 0 0;}
-    .stat-card{display:none;}
+
+    /* Inicio: en movil se muestra en el orden acciones -> stats -> card
+       (en escritorio no cambia nada, .dash-desktop-only y .dash-desktop-row
+       siguen visibles y .dash-mobile-order permanece oculto) */
+    .dash-desktop-only{display:none;}
+    .dash-desktop-row{display:none;}
+    .dash-mobile-order{display:flex;flex-direction:column;gap:20px;margin-bottom:20px;}
 
     /* Grids que colapsan a una sola columna */
     .stats-grid,
@@ -1808,6 +1815,146 @@ export default function ReadTrackApp() {
     const totalPaginasAllWeeks = (data.sesiones || []).reduce((sum, s) => sum + (s.paginasLeidas || 0), 0);
     const totalSesiones = data.libros.reduce((s, l) => s + (l.sesiones?.length || 0), 0) + 12;
 
+    const statsGridContent = (
+      <div className="stats-grid">
+        {[
+          { label: 'Materias activas', value: data.materias.filter(m => !m.archivada).length, icon: <BookIcon size={20} color={C.purple} />, bg: 'rgba(124,42,142,.08)', change: '+1 este semestre', pos: true },
+          { label: 'Notas creadas', value: data.notas.length, icon: <NoteIcon />, bg: 'rgba(190,213,47,.12)', change: '+3 esta semana', pos: true },
+          { label: 'Páginas leídas', value: totalPaginasAllWeeks.toLocaleString(), icon: <ChartIcon size={20} />, bg: 'rgba(249,115,22,.1)', change: '+248 esta semana', pos: true },
+        ].map((s, i) => (
+          <div key={i} className="stat-card">
+            <div className="stat-card-row">
+              {s.icon && <div className="stat-icon" style={{ background: s.bg }}>{s.icon}</div>}
+              <div className="stat-info">
+                <div className="stat-value">{s.value}</div>
+                <div className="stat-label">{s.label}</div>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+
+    const chartCardContent = (
+      <div className="card">
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+          <div style={{ fontWeight: 700, fontSize: 15, color: C.tPrimary }}>Actividad semanal — páginas leídas</div>
+          <span className="chip chip-lime">{getWeekLabel()}</span>
+        </div>
+        <div className="bar-chart">
+          {data.actividadSemanal.length > 0 ? data.actividadSemanal.map((d, i) => {
+            const max = Math.max(...data.actividadSemanal.map(x => x.pags), 1);
+            const h = d.pags ? Math.max((d.pags / max) * 80, 8) : 4;
+            return (
+              <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                <div className={`bar ${i === getTodayIndexMonday() ? 'today' : ''}`} style={{ height: h, width: '100%', minHeight: d.pags ? 8 : 4, opacity: d.pags ? 1 : 0.25 }}></div>
+                <div className="bar-label">{d.dia}</div>
+                {d.pags > 0 && <div style={{ fontSize: 9, color: C.tHint }}>{d.pags}</div>}
+              </div>
+            );
+          }) : Array.from({ length: 7 }, (_, i) => (
+            <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+              <div className="bar" style={{ height: 4, width: '100%', opacity: 0.25 }}></div>
+              <div className="bar-label">-</div>
+            </div>
+          ))}
+        </div>
+        <div style={{ marginTop: 20 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+            <div style={{ fontWeight: 700, fontSize: 13, color: C.tPrimary }}>Historial de sesiones</div>
+            <span className="chip chip-gray">{data.sesiones.filter(s => isInCurrentWeek(s.fecha)).length} sesiones</span>
+          </div>
+          {data.sesiones.filter(s => isInCurrentWeek(s.fecha)).length > 0 ? (
+            <div className="table-wrap">
+              <div className="table-scroll">
+                <table>
+                <thead>
+                  <tr>
+                    <th>Fecha</th>
+                    <th>Libro</th>
+                    <th>Páginas</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.sesiones
+                    .filter(s => isInCurrentWeek(s.fecha))
+                    .sort((a, b) => new Date(b.fecha) - new Date(a.fecha))
+                    .map((sesion) => (
+                      <tr key={sesion.id}>
+                        <td>{formatSessionDate(sesion.fecha)}</td>
+                        <td>{sesion.libro?.titulo || 'Libro'}</td>
+                        <td>{sesion.paginasLeidas}</td>
+                      </tr>
+                    ))}
+                </tbody>
+                </table>
+              </div>
+            </div>
+          ) : (
+            <div style={{ fontSize: 13, color: C.tHint, padding: '14px 0' }}>
+              Aún no hay sesiones guardadas esta semana. Guarda tu próxima lectura para verla aquí.
+            </div>
+          )}
+        </div>
+      </div>
+    );
+
+    const actionsColumnContent = (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+        <div className="racha-card">
+          <div style={{ color: 'rgba(255,255,255,.5)', fontSize: 11, fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase', marginBottom: 4 }}>
+            Racha de lectura
+          </div>
+          <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, marginBottom: 14 }}>
+            <div style={{ fontSize: 36, fontWeight: 800, color: '#fff' }}>{data.racha.actual}</div>
+            <div style={{ fontSize: 13, color: 'rgba(255,255,255,.45)', marginBottom: 6 }}>días consecutivos</div>
+          </div>
+          <div className="prog-track" style={{ marginBottom: 8, background: 'rgba(255,255,255,.1)' }}>
+            <div className="prog-fill" style={{ width: `${(data.racha.actual / data.racha.maxima) * 100}%` }}></div>
+          </div>
+          <div style={{ fontSize: 11, color: 'rgba(255,255,255,.4)', marginBottom: 14 }}>Máxima racha: {data.racha.maxima} días</div>
+          <div className="week-cal">
+            {getWeekCalendarItems().map((item, i) => (
+              <div key={i} className={`wday ${item.done ? 'wd-done' : item.today ? 'wd-today' : 'wd-pending'}`}>
+                <div style={{ fontSize: 13 }}>{item.done ? '✓' : item.today ? '●' : '○'}</div>
+                <div className="wd-name">{item.label}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+          <button
+            className="btn btn-lime"
+            style={{ minWidth: 0, height: 'auto', minHeight: 44, padding: '10px 10px', textAlign: 'center', whiteSpace: 'normal', lineHeight: 1.25 }}
+            onClick={openNotaRapida}
+          >
+            Crear nota rápida
+          </button>
+          <button
+            className="btn btn-lime"
+            style={{ minWidth: 0, height: 'auto', minHeight: 44, padding: '10px 10px', textAlign: 'center', whiteSpace: 'normal', lineHeight: 1.25 }}
+            onClick={() => setModal('nueva_materia')}
+          >
+            Agregar materia
+          </button>
+          <button
+            className="btn btn-lime"
+            style={{ minWidth: 0, height: 'auto', minHeight: 44, padding: '10px 10px', textAlign: 'center', whiteSpace: 'normal', lineHeight: 1.25 }}
+            onClick={openFotoRapida}
+          >
+            Tomar foto
+          </button>
+          <button
+            className="btn btn-lime"
+            style={{ minWidth: 0, height: 'auto', minHeight: 44, padding: '10px 10px', textAlign: 'center', whiteSpace: 'normal', lineHeight: 1.25 }}
+            onClick={openAudioRapido}
+          >
+            Grabar audio
+          </button>
+        </div>
+      </div>
+    );
+
     return (
       <>
         <div className="dashboard-header">
@@ -1818,142 +1965,22 @@ export default function ReadTrackApp() {
             </div>
           </div>
 
-          <div className="stats-grid">
-            {[
-              { label: 'Materias activas', value: data.materias.filter(m => !m.archivada).length, icon: <BookIcon size={20} color={C.purple} />, bg: 'rgba(124,42,142,.08)', change: '+1 este semestre', pos: true },
-              { label: 'Notas creadas', value: data.notas.length, icon: <NoteIcon />, bg: 'rgba(190,213,47,.12)', change: '+3 esta semana', pos: true },
-              { label: 'Páginas leídas', value: totalPaginasAllWeeks.toLocaleString(), icon: <ChartIcon size={20} />, bg: 'rgba(249,115,22,.1)', change: '+248 esta semana', pos: true },
-            ].map((s, i) => (
-              <div key={i} className="stat-card">
-                <div className="stat-card-row">
-                  {s.icon && <div className="stat-icon" style={{ background: s.bg }}>{s.icon}</div>}
-                  <div className="stat-info">
-                    <div className="stat-value">{s.value}</div>
-                    <div className="stat-label">{s.label}</div>
-                  </div>
-                </div>
-              </div>
-            ))}
+          <div className="dash-desktop-only">
+            {statsGridContent}
           </div>
         </div>
 
         <div className="page">
-          <div className="rt-grid-stack" style={{ display: 'grid', gridTemplateColumns: '1fr 360px', gap: 20, marginBottom: 20 }}>
-            <div className="card">
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-                <div style={{ fontWeight: 700, fontSize: 15, color: C.tPrimary }}>Actividad semanal — páginas leídas</div>
-                <span className="chip chip-lime">{getWeekLabel()}</span>
-              </div>
-              <div className="bar-chart">
-                {data.actividadSemanal.length > 0 ? data.actividadSemanal.map((d, i) => {
-                  const max = Math.max(...data.actividadSemanal.map(x => x.pags), 1);
-                  const h = d.pags ? Math.max((d.pags / max) * 80, 8) : 4;
-                  return (
-                    <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                      <div className={`bar ${i === getTodayIndexMonday() ? 'today' : ''}`} style={{ height: h, width: '100%', minHeight: d.pags ? 8 : 4, opacity: d.pags ? 1 : 0.25 }}></div>
-                      <div className="bar-label">{d.dia}</div>
-                      {d.pags > 0 && <div style={{ fontSize: 9, color: C.tHint }}>{d.pags}</div>}
-                    </div>
-                  );
-                }) : Array.from({ length: 7 }, (_, i) => (
-                  <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                    <div className="bar" style={{ height: 4, width: '100%', opacity: 0.25 }}></div>
-                    <div className="bar-label">-</div>
-                  </div>
-                ))}
-              </div>
-              <div style={{ marginTop: 20 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                  <div style={{ fontWeight: 700, fontSize: 13, color: C.tPrimary }}>Historial de sesiones</div>
-                  <span className="chip chip-gray">{data.sesiones.filter(s => isInCurrentWeek(s.fecha)).length} sesiones</span>
-                </div>
-                {data.sesiones.filter(s => isInCurrentWeek(s.fecha)).length > 0 ? (
-                  <div className="table-wrap">
-                    <div className="table-scroll">
-                      <table>
-                      <thead>
-                        <tr>
-                          <th>Fecha</th>
-                          <th>Libro</th>
-                          <th>Páginas</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {data.sesiones
-                          .filter(s => isInCurrentWeek(s.fecha))
-                          .sort((a, b) => new Date(b.fecha) - new Date(a.fecha))
-                          .map((sesion) => (
-                            <tr key={sesion.id}>
-                              <td>{formatSessionDate(sesion.fecha)}</td>
-                              <td>{sesion.libro?.titulo || 'Libro'}</td>
-                              <td>{sesion.paginasLeidas}</td>
-                            </tr>
-                          ))}
-                      </tbody>
-                      </table>
-                    </div>
-                  </div>
-                ) : (
-                  <div style={{ fontSize: 13, color: C.tHint, padding: '14px 0' }}>
-                    Aún no hay sesiones guardadas esta semana. Guarda tu próxima lectura para verla aquí.
-                  </div>
-                )}
-              </div>
-            </div>
+          {/* Orden exclusivo para móvil: acciones -> stats -> card. No afecta la vista de escritorio. */}
+          <div className="dash-mobile-order">
+            {actionsColumnContent}
+            {statsGridContent}
+            {chartCardContent}
+          </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-              <div className="racha-card">
-                <div style={{ color: 'rgba(255,255,255,.5)', fontSize: 11, fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase', marginBottom: 4 }}>
-                  Racha de lectura
-                </div>
-                <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, marginBottom: 14 }}>
-                  <div style={{ fontSize: 36, fontWeight: 800, color: '#fff' }}>{data.racha.actual}</div>
-                  <div style={{ fontSize: 13, color: 'rgba(255,255,255,.45)', marginBottom: 6 }}>días consecutivos</div>
-                </div>
-                <div className="prog-track" style={{ marginBottom: 8, background: 'rgba(255,255,255,.1)' }}>
-                  <div className="prog-fill" style={{ width: `${(data.racha.actual / data.racha.maxima) * 100}%` }}></div>
-                </div>
-                <div style={{ fontSize: 11, color: 'rgba(255,255,255,.4)', marginBottom: 14 }}>Máxima racha: {data.racha.maxima} días</div>
-                <div className="week-cal">
-                  {getWeekCalendarItems().map((item, i) => (
-                    <div key={i} className={`wday ${item.done ? 'wd-done' : item.today ? 'wd-today' : 'wd-pending'}`}>
-                      <div style={{ fontSize: 13 }}>{item.done ? '✓' : item.today ? '●' : '○'}</div>
-                      <div className="wd-name">{item.label}</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                <button
-                  className="btn btn-lime"
-                  style={{ minWidth: 0, height: 'auto', minHeight: 44, padding: '10px 10px', textAlign: 'center', whiteSpace: 'normal', lineHeight: 1.25 }}
-                  onClick={openNotaRapida}
-                >
-                  Crear nota rápida
-                </button>
-                <button
-                  className="btn btn-lime"
-                  style={{ minWidth: 0, height: 'auto', minHeight: 44, padding: '10px 10px', textAlign: 'center', whiteSpace: 'normal', lineHeight: 1.25 }}
-                  onClick={() => setModal('nueva_materia')}
-                >
-                  Agregar materia
-                </button>
-                <button
-                  className="btn btn-lime"
-                  style={{ minWidth: 0, height: 'auto', minHeight: 44, padding: '10px 10px', textAlign: 'center', whiteSpace: 'normal', lineHeight: 1.25 }}
-                  onClick={openFotoRapida}
-                >
-                  Tomar foto
-                </button>
-                <button
-                  className="btn btn-lime"
-                  style={{ minWidth: 0, height: 'auto', minHeight: 44, padding: '10px 10px', textAlign: 'center', whiteSpace: 'normal', lineHeight: 1.25 }}
-                  onClick={openAudioRapido}
-                >
-                  Grabar audio
-                </button>
-              </div>
-            </div>
+          <div className="rt-grid-stack dash-desktop-row" style={{ display: 'grid', gridTemplateColumns: '1fr 360px', gap: 20, marginBottom: 20 }}>
+            {chartCardContent}
+            {actionsColumnContent}
           </div>
         </div>
       </>
