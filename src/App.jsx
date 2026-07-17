@@ -340,6 +340,17 @@ const buildCss = (C) => `
     .badge-grid,
     .rt-grid-stack{grid-template-columns:1fr !important;}
 
+    /* Materias: boton "+ Nueva materia" flotante abajo a la derecha en movil.
+       No afecta el boton en escritorio (fuera de este media query sigue
+       dentro del topbar como siempre). */
+    .fab-nueva-materia{
+      position:fixed;
+      bottom:22px;
+      right:18px;
+      z-index:120;
+      box-shadow:0 10px 24px rgba(0,0,0,.28) !important;
+    }
+
     /* Buscadores y filas de acciones del topbar */
     .search-wrap{width:100% !important;}
     .topbar-actions{width:100%;flex-wrap:wrap;row-gap:10px;}
@@ -2216,7 +2227,7 @@ export default function ReadTrackApp() {
               <SearchIcon />
               <input placeholder="Buscar materia..." value={search} onChange={(e) => setSearch(e.target.value)} />
             </div>
-            <button className="btn btn-lime" onClick={() => setModal('nueva_materia')}>
+            <button className="btn btn-lime fab-nueva-materia" onClick={() => setModal('nueva_materia')}>
               + Nueva materia
             </button>
           </div>
