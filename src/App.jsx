@@ -1,3 +1,5 @@
+
+
 import { useState, useEffect } from 'react';
 import { THEME, COLORS_MATERIA, CONFIG } from './config';
 import { useAuth } from './hooks/useAuth';
@@ -296,6 +298,7 @@ const buildCss = (C) => `
   .mobile-menu-btn{display:none;}
   .sidebar-overlay{display:none;}
   .dash-mobile-order{display:none;}
+  .biblio-cards-mobile{display:none;}
 
   @media (max-width:900px){
     .sidebar{transform:translateX(-100%);}
@@ -359,6 +362,16 @@ const buildCss = (C) => `
     .action-title{font-size:13.5px !important;}
     .action-cta{font-size:11px !important;}
 
+    /* Mi biblioteca: tabla se oculta y se muestra un listado de tarjetas */
+    .biblio-table-desktop{display:none !important;}
+    .biblio-cards-mobile{display:flex !important;flex-direction:column;gap:12px;}
+    .libro-card-mobile{
+      background:${C.white};
+      border:1.5px solid ${C.g200};
+      border-radius:16px;
+      padding:14px;
+    }
+
     /* Buscadores y filas de acciones del topbar */
     .search-wrap{width:100% !important;}
     .topbar-actions{width:100%;flex-wrap:wrap;row-gap:10px;}
@@ -386,8 +399,28 @@ const buildCss = (C) => `
     .rt-cal-main{padding:20px 16px !important;}
     .rt-cal-months{grid-template-columns:repeat(6,1fr) !important;row-gap:10px;font-size:10px !important;}
 
-    /* Barra flotante de sesion de lectura activa (definida en ReadingSessionBar.jsx) */
-    .session-bar{left:0 !important;padding:0 16px !important;overflow-x:auto;}
+    /* Barra flotante de sesion de lectura activa (definida en ReadingSessionBar.jsx).
+       En movil se reorganiza en columna: arriba libro, abajo cronometro+botones.
+       Los !important son necesarios porque esos elementos tienen estilos inline. */
+    .session-bar{
+      left:0 !important;
+      height:auto !important;
+      min-height:84px;
+      flex-direction:column !important;
+      align-items:stretch !important;
+      justify-content:center !important;
+      gap:10px !important;
+      padding:12px 16px !important;
+    }
+    .session-bar-info{gap:10px !important;}
+    .session-badge{padding:5px 10px !important;font-size:11px !important;flex-shrink:0;}
+    .session-book-title{font-size:15px !important;max-width:60vw !important;}
+    .session-book-author{display:none !important;}
+    .session-controls-wrap{width:100%;justify-content:space-between !important;gap:12px !important;}
+    .session-timer-digits{font-size:22px !important;}
+    .session-buttons{gap:8px !important;}
+    .session-btn{width:38px !important;height:38px !important;border-radius:9px !important;}
+    .session-pageinfo{display:none !important;}
     .session-progress{left:0 !important;}
 
     /* Toast */
@@ -2456,7 +2489,7 @@ export default function ReadTrackApp() {
               {data.libros.filter(l => l.estado === 'TERMINADO').length} terminados · {data.libros.filter(l => l.estado === 'PENDIENTE').length} pendientes
             </div>
           </div>
-          <button className="btn btn-lime" onClick={() => setModal('nuevo_libro')}>
+          <button className="btn btn-lime fab-nueva-materia" onClick={() => setModal('nuevo_libro')}>
             + Agregar libro
           </button>
         </div>
@@ -2490,12 +2523,13 @@ export default function ReadTrackApp() {
               </div>
             </div>
           </div>
-          <div className="table-wrap">
+
+          {/* Tabla: version de escritorio (se oculta en movil) */}
+          <div className="table-wrap biblio-table-desktop">
             <table>
               <thead>
                 <tr>
                   <th>Libro</th>
-                  <th>Tipo</th>
                   <th>Progreso</th>
                   <th>Estado</th>
                   <th>Acciones</th>
@@ -2519,9 +2553,6 @@ export default function ReadTrackApp() {
                           </div>
                         </div>
                       </td>
-                      <td>
-                        <span className="chip chip-purple">{l.tipo}</span>
-                      </td>
                       <td style={{ minWidth: 160 }}>
                         <div className="prog-track" style={{ marginBottom: 4 }}>
                           <div className="prog-fill" style={{ width: `${pct}%` }}></div>
@@ -2531,7 +2562,7 @@ export default function ReadTrackApp() {
                         </div>
                       </td>
                       <td>
-                        <span className={`chip ${sc.cls}`} style={{ cursor: 'pointer' }} onClick={() => handleCambiarEstadoLibro(l)}>
+                        <span className={`chip ${sc.cls}`}>
                           {sc.label}
                         </span>
                       </td>
@@ -2590,6 +2621,93 @@ export default function ReadTrackApp() {
                 })}
               </tbody>
             </table>
+            {filtrados.length === 0 && (
+              <div style={{ padding: '40px', textAlign: 'center', color: C.tHint, fontSize: 13.5 }}>
+                No se encontraron libros con los filtros seleccionados.
+              </div>
+            )}
+          </div>
+
+          {/* Tarjetas: version movil (se oculta en escritorio) */}
+          <div className="biblio-cards-mobile">
+            {librosOrdenados.map(l => {
+              const paginasLeidas = l.estado === 'TERMINADO' ? l.totalPaginas : l.paginasLeidas;
+              const pct = Math.round((paginasLeidas / l.totalPaginas) * 100);
+              const sc = statusChip[l.estado];
+              return (
+                <div key={l.id} className="libro-card-mobile">
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+                      <div style={{ width: 34, height: 44, borderRadius: 8, background: 'rgba(124,42,142,.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <BookIcon size={15} color={C.purple} />
+                      </div>
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ fontSize: 13.5, fontWeight: 700, color: C.tPrimary, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{l.titulo}</div>
+                        {l.autor && <div style={{ fontSize: 11, color: C.tHint, marginTop: 2 }}>{l.autor}</div>}
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+                      <span className={`chip ${sc.cls}`}>{sc.label}</span>
+                      <button
+                        className="act-btn act-edit"
+                        title="Editar"
+                        onClick={(e) => { e.stopPropagation(); setActiveLibro(l); setModal('editar_libro'); }}
+                      >
+                        <EditIcon />
+                      </button>
+                      <button
+                        className="act-btn act-del"
+                        title="Eliminar"
+                        onClick={() => handleEliminarLibro(l)}
+                      >
+                        <TrashIcon />
+                      </button>
+                    </div>
+                  </div>
+                  <div className="prog-track" style={{ marginTop: 12 }}>
+                    <div className="prog-fill" style={{ width: `${pct}%` }}></div>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8, gap: 10 }}>
+                    <div style={{ fontSize: 11, color: C.tHint }}>
+                      {paginasLeidas} / {l.totalPaginas} págs · {pct}%
+                    </div>
+                    <button
+                      className="btn btn-lime btn-sm"
+                      style={{
+                        minWidth: 110,
+                        width: 110,
+                        justifyContent: 'center',
+                        flexShrink: 0,
+                        background: l.estado === 'TERMINADO' ? '#3bce71' : l.estado === 'PENDIENTE' ? '#DAD6D6' : undefined,
+                        boxShadow: l.estado === 'TERMINADO'
+                          ? '0 10px 20px rgba(59, 206, 113, 0.25)'
+                          : l.estado === 'PENDIENTE'
+                          ? '0 10px 20px rgba(0, 0, 0, 0.12)'
+                          : undefined,
+                      }}
+                      onClick={() => { setActiveLibro(l); setModal('iniciar_sesion'); }}
+                    >
+                      {l.estado === 'TERMINADO' ? (
+                        <>
+                          <RestartIcon size={16} />
+                          Reiniciar
+                        </>
+                      ) : l.estado === 'PENDIENTE' ? (
+                        <>
+                          <StartIcon size={16} />
+                          Comenzar
+                        </>
+                      ) : (
+                        <>
+                          <ContinueIcon size={16} />
+                          Seguir
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
             {filtrados.length === 0 && (
               <div style={{ padding: '40px', textAlign: 'center', color: C.tHint, fontSize: 13.5 }}>
                 No se encontraron libros con los filtros seleccionados.

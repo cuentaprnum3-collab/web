@@ -142,8 +142,8 @@ export function ReadingSessionBar({ session, onUpdateSession, onEndSession, C })
         zIndex: 90,
       }}>
         {/* Info del libro */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '18px' }}>
-          <div style={{
+        <div className="session-bar-info" style={{ display: 'flex', alignItems: 'center', gap: '18px' }}>
+          <div className="session-badge" style={{
             background: C.lime,
             color: C.dark,
             padding: '8px 14px',
@@ -158,21 +158,21 @@ export function ReadingSessionBar({ session, onUpdateSession, onEndSession, C })
             Leyendo
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-            <div style={{ fontSize: '22px', fontWeight: 600, maxWidth: 300, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          <div className="session-book-meta" style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            <div className="session-book-title" style={{ fontSize: '22px', fontWeight: 600, maxWidth: 300, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
               {session.libro.titulo}
             </div>
-            <div style={{ color: 'rgba(255,255,255,.5)', fontSize: '14px' }}>
+            <div className="session-book-author" style={{ color: 'rgba(255,255,255,.5)', fontSize: '14px' }}>
               {session.libro.autor || 'Autor desconocido'}
             </div>
           </div>
         </div>
 
         {/* Tiempo y controles */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '28px' }}>
+        <div className="session-controls-wrap" style={{ display: 'flex', alignItems: 'center', gap: '28px' }}>
           {/* Cronómetro */}
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-            <div style={{ fontSize: '32px', fontWeight: 800, color: C.lime, fontFamily: 'monospace' }}>
+          <div className="session-timer" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+            <div className="session-timer-digits" style={{ fontSize: '32px', fontWeight: 800, color: C.lime, fontFamily: 'monospace' }}>
               {String(minutos).padStart(2, '0')}:{String(segundos).padStart(2, '0')}
             </div>
             <div style={{ fontSize: '11px', color: 'rgba(255,255,255,.45)', marginTop: '4px' }}>
@@ -181,8 +181,9 @@ export function ReadingSessionBar({ session, onUpdateSession, onEndSession, C })
           </div>
 
           {/* Botones de control */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div className="session-buttons" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <button
+              className="session-btn"
               onClick={() => { setEditTimeForm(appliedTime); setShowTimeModal(true); }}
               style={{
                 width: '48px',
@@ -205,6 +206,7 @@ export function ReadingSessionBar({ session, onUpdateSession, onEndSession, C })
             </button>
 
             <button
+              className="session-btn"
               onClick={handleToggleMusic}
               style={{
                 width: '48px',
@@ -227,6 +229,7 @@ export function ReadingSessionBar({ session, onUpdateSession, onEndSession, C })
             </button>
 
             <button
+              className="session-btn"
               onClick={handleEndSession}
               style={{
                 width: '48px',
@@ -251,7 +254,7 @@ export function ReadingSessionBar({ session, onUpdateSession, onEndSession, C })
 
 
           {/* Información de páginas */}
-          <div>
+          <div className="session-pageinfo">
             <div>
               Página: <strong style={{ color: C.lime }}>#{session.paginaInicial}</strong>
             </div>
