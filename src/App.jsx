@@ -1,5 +1,3 @@
-
-
 import { useState, useEffect } from 'react';
 import { THEME, COLORS_MATERIA, CONFIG } from './config';
 import { useAuth } from './hooks/useAuth';
@@ -329,14 +327,17 @@ const buildCss = (C) => `
     .dash-desktop-row{display:none !important;}
     .dash-mobile-order{display:flex;flex-direction:column;gap:20px;margin-bottom:20px;}
 
-    /* Stats: siempre en una sola fila de 3, mas compactas */
-    .stats-grid{grid-template-columns:repeat(3,1fr) !important;gap:8px !important;margin:12px 16px 0 !important;}
-    .stat-card{padding:12px 8px !important;min-height:auto !important;}
+    /* Stats: siempre en una sola fila de 3, mas compactas.
+       min-width:0 evita que el grid/las tarjetas se desborden del
+       contenedor flex y empujen la tercera tarjeta fuera de pantalla. */
+    .stats-grid{grid-template-columns:repeat(3,1fr) !important;gap:8px !important;margin:12px 16px 0 !important;min-width:0 !important;width:auto !important;}
+    .stat-card{padding:12px 8px !important;min-height:auto !important;min-width:0 !important;}
     .stat-card-row{gap:6px !important;}
     .stat-icon{width:32px !important;height:32px !important;}
     .stat-icon svg{width:16px !important;height:16px !important;}
     .stat-value{font-size:18px !important;line-height:1.1 !important;}
     .stat-label{font-size:9.5px !important;line-height:1.2 !important;}
+    .dash-mobile-order > *{min-width:0;}
 
     /* Grids que colapsan a una sola columna */
     .mat-grid,
@@ -364,13 +365,16 @@ const buildCss = (C) => `
 
     /* Mi biblioteca: tabla se oculta y se muestra un listado de tarjetas */
     .biblio-table-desktop{display:none !important;}
-    .biblio-cards-mobile{display:flex !important;flex-direction:column;gap:12px;}
+    .biblio-cards-mobile{display:flex !important;flex-direction:column;gap:12px;padding-bottom:90px;}
     .libro-card-mobile{
       background:${C.white};
       border:1.5px solid ${C.g200};
       border-radius:16px;
       padding:14px;
     }
+
+    .mat-grid{padding-bottom:90px;}
+    .notas-grid{padding-bottom:90px;}
 
     /* Buscadores y filas de acciones del topbar */
     .search-wrap{width:100% !important;}
@@ -1983,31 +1987,31 @@ export default function ReadTrackApp() {
             ))}
           </div>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
           <button
             className="btn btn-lime"
-            style={{ minWidth: 0, height: 'auto', minHeight: 44, padding: '10px 10px', textAlign: 'center', whiteSpace: 'normal', lineHeight: 1.25 }}
+            style={{ flex: '1 1 calc(50% - 5px)', boxSizing: 'border-box', minWidth: 0, width: 0, height: 'auto', minHeight: 44, padding: '10px 10px', textAlign: 'center', whiteSpace: 'normal', lineHeight: 1.25 }}
             onClick={openNotaRapida}
           >
             Crear nota rápida
           </button>
           <button
             className="btn btn-lime"
-            style={{ minWidth: 0, height: 'auto', minHeight: 44, padding: '10px 10px', textAlign: 'center', whiteSpace: 'normal', lineHeight: 1.25 }}
+            style={{ flex: '1 1 calc(50% - 5px)', boxSizing: 'border-box', minWidth: 0, width: 0, height: 'auto', minHeight: 44, padding: '10px 10px', textAlign: 'center', whiteSpace: 'normal', lineHeight: 1.25 }}
             onClick={() => setModal('nueva_materia')}
           >
             Agregar materia
           </button>
           <button
             className="btn btn-lime"
-            style={{ minWidth: 0, height: 'auto', minHeight: 44, padding: '10px 10px', textAlign: 'center', whiteSpace: 'normal', lineHeight: 1.25 }}
+            style={{ flex: '1 1 calc(50% - 5px)', boxSizing: 'border-box', minWidth: 0, width: 0, height: 'auto', minHeight: 44, padding: '10px 10px', textAlign: 'center', whiteSpace: 'normal', lineHeight: 1.25 }}
             onClick={openFotoRapida}
           >
             Tomar foto
           </button>
           <button
             className="btn btn-lime"
-            style={{ minWidth: 0, height: 'auto', minHeight: 44, padding: '10px 10px', textAlign: 'center', whiteSpace: 'normal', lineHeight: 1.25 }}
+            style={{ flex: '1 1 calc(50% - 5px)', boxSizing: 'border-box', minWidth: 0, width: 0, height: 'auto', minHeight: 44, padding: '10px 10px', textAlign: 'center', whiteSpace: 'normal', lineHeight: 1.25 }}
             onClick={openAudioRapido}
           >
             Grabar audio
