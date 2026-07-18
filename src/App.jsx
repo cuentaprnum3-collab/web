@@ -297,6 +297,7 @@ const buildCss = (C) => `
   .sidebar-overlay{display:none;}
   .dash-mobile-order{display:none;}
   .biblio-cards-mobile{display:none;}
+  .cal-mobile{display:none;}
 
   @media (max-width:900px){
     .sidebar{transform:translateX(-100%);}
@@ -405,12 +406,33 @@ const buildCss = (C) => `
     .login-left{width:100%;padding:32px 24px;}
     .login-right{padding:32px 24px;}
 
-    /* Calendario */
-    .rt-cal-wrap{flex-direction:column;}
-    .rt-cal-side{width:100% !important;padding:24px 20px !important;}
-    .rt-cal-side-box{width:100% !important;}
-    .rt-cal-main{padding:20px 16px !important;}
-    .rt-cal-months{grid-template-columns:repeat(6,1fr) !important;row-gap:10px;font-size:10px !important;}
+    /* Calendario: en movil se oculta la version de escritorio (paneles
+       fijos de 380px/12 meses) y se muestra .cal-mobile en su lugar */
+    .rt-cal-wrap{display:none !important;}
+
+    .cal-mobile{display:flex !important;flex-direction:column;gap:14px;}
+    .cal-mobile-card{background:${C.white};border-radius:18px;padding:16px;box-shadow:0 2px 10px rgba(0,0,0,.05);}
+    .cal-mobile-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+    .cal-mobile-nav-btn{width:30px;height:30px;border-radius:999px;border:1px solid ${C.g300};background:${C.g100};color:${C.tPrimary};display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:12px;flex-shrink:0;}
+    .cal-mobile-month-title{font-size:15px;font-weight:700;color:${C.tPrimary};cursor:pointer;text-align:center;}
+    .cal-mobile-weekdays{display:grid;grid-template-columns:repeat(7,1fr);text-align:center;color:${C.tHint};font-size:11px;font-weight:600;margin-bottom:6px;}
+    .cal-mobile-grid{display:grid;grid-template-columns:repeat(7,1fr);row-gap:4px;}
+    .cal-mobile-day{border:none;background:transparent;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:2px;padding:3px 0;font-family:inherit;}
+    .cal-mobile-day-num{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12.5px;color:${C.tPrimary};}
+    .cal-mobile-day-selected{background:${C.dark};color:#fff;font-weight:700;}
+    .cal-mobile-dots{display:flex;gap:3px;height:6px;}
+    .cal-mobile-dots i{width:5px;height:5px;border-radius:50%;display:block;}
+    .cal-mobile-legend{display:flex;flex-wrap:wrap;gap:14px;margin-top:12px;padding-top:12px;border-top:1px solid ${C.g200};font-size:11px;color:${C.tSecondary};}
+    .cal-mobile-legend span{display:flex;align-items:center;gap:6px;}
+    .cal-mobile-legend i{width:8px;height:8px;border-radius:50%;display:inline-block;}
+    .cal-mobile-day-title{font-size:15px;font-weight:700;color:${C.tPrimary};margin-bottom:14px;}
+    .cal-mobile-section{margin-bottom:16px;}
+    .cal-mobile-section:last-child{margin-bottom:0;}
+    .cal-mobile-section-title{font-size:12.5px;font-weight:700;margin-bottom:10px;}
+    .cal-mobile-empty{color:${C.tSecondary};font-size:12.5px;line-height:1.7;}
+    .cal-mobile-item{border-radius:12px;padding:12px;background:${C.g100};border:1px solid #fff;}
+    .cal-mobile-item-title{font-size:12.5px;font-weight:700;color:${C.tPrimary};margin-bottom:5px;}
+    .cal-mobile-item-meta{font-size:11px;color:${C.tSecondary};margin-bottom:3px;}
 
     /* Barra flotante de sesion de lectura activa (definida en ReadingSessionBar.jsx).
        En movil se reorganiza en columna: arriba libro, abajo cronometro+botones.
@@ -2875,6 +2897,10 @@ export default function ReadTrackApp() {
 
     const getDayName = (date) => date.toLocaleDateString('es-ES', { weekday: 'long' }).toUpperCase();
     const getMonthName = (date) => date.toLocaleDateString('es-ES', { month: 'long' }).toUpperCase();
+    const getMonthNameCap = (date) => {
+      const m = date.toLocaleDateString('es-ES', { month: 'long' });
+      return m.charAt(0).toUpperCase() + m.slice(1);
+    };
 
     // Debuggear sesiones y notas
     console.log('🔍 CALENDARIO DEBUG - data.sesiones:', data.sesiones, 'length:', data.sesiones?.length);
@@ -3106,6 +3132,132 @@ export default function ReadTrackApp() {
                     </button>
                   );
                 })}
+              </div>
+            </div>
+          </div>
+
+          {/* Version movil del calendario (se oculta en escritorio) */}
+          <div className="cal-mobile">
+            <div className="cal-mobile-card">
+              <div className="cal-mobile-nav">
+                <button
+                  type="button"
+                  className="cal-mobile-nav-btn"
+                  onClick={() => setSelectedCalendarDate(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1))}
+                  title="Mes anterior"
+                >
+                  ◀
+                </button>
+                <div className="cal-mobile-month-title" onClick={() => setSelectedCalendarDate(new Date())} title="Ir a hoy">
+                  {getMonthNameCap(currentMonth)} {currentMonth.getFullYear()}
+                </div>
+                <button
+                  type="button"
+                  className="cal-mobile-nav-btn"
+                  onClick={() => setSelectedCalendarDate(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1))}
+                  title="Mes siguiente"
+                >
+                  ▶
+                </button>
+              </div>
+
+              <div className="cal-mobile-weekdays">
+                {['L', 'M', 'X', 'J', 'V', 'S', 'D'].map((d, i) => (
+                  <div key={`${d}-${i}`}>{d}</div>
+                ))}
+              </div>
+
+              <div className="cal-mobile-grid">
+                {calendarCells.map((day, index) => {
+                  const dateKey = day ? formatLocalDateString(new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day)) : null;
+                  const hasSession = dateKey && sessionDates && sessionDates.size > 0 ? sessionDates.has(dateKey) : false;
+                  const hasNote = dateKey && noteDates && noteDates.size > 0 ? noteDates.has(dateKey) : false;
+                  const isSelected = dateKey === selectedDateString;
+
+                  if (!day) {
+                    return <div key={`empty-cm-${index}`} />;
+                  }
+
+                  return (
+                    <button
+                      key={`cm-${day}-${index}`}
+                      type="button"
+                      className="cal-mobile-day"
+                      onClick={() => setSelectedCalendarDate(new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day))}
+                    >
+                      <span className={isSelected ? 'cal-mobile-day-num cal-mobile-day-selected' : 'cal-mobile-day-num'}>
+                        {day}
+                      </span>
+                      <span className="cal-mobile-dots">
+                        {hasSession && <i style={{ background: C.purple }} />}
+                        {hasNote && <i style={{ background: C.lime }} />}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="cal-mobile-legend">
+                <span><i style={{ background: C.purple }} />Sesiones de lectura</span>
+                <span><i style={{ background: C.lime }} />Notas con cumplimiento</span>
+              </div>
+            </div>
+
+            <div className="cal-mobile-card">
+              <div className="cal-mobile-day-title">{selectedDate.getDate()} De {getMonthNameCap(selectedDate)}</div>
+
+              <div className="cal-mobile-section">
+                <div className="cal-mobile-section-title" style={{ color: '#7C2A8E' }}>📅 Sesiones de lectura</div>
+                {sesionesDelDia.length === 0 ? (
+                  <div className="cal-mobile-empty">No hay sesiones para este día.</div>
+                ) : (
+                  <div style={{ display: 'grid', gap: 10 }}>
+                    {sesionesDelDia.map((sesion) => (
+                      <div key={sesion.id} className="cal-mobile-item">
+                        <div className="cal-mobile-item-title">{sesion.libro?.titulo || 'Sesión de lectura'}</div>
+                        <div className="cal-mobile-item-meta">Páginas: {sesion.paginaInicio} - {sesion.paginaFin}</div>
+                        <div className="cal-mobile-item-meta">Duración: {sesion.duracionMinutos} min</div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="cal-mobile-section">
+                <div className="cal-mobile-section-title" style={{ color: '#7a9a1e' }}>📝 Notas</div>
+                {notasDelDia.length === 0 ? (
+                  <div className="cal-mobile-empty">No hay notas guardadas para este día.</div>
+                ) : (
+                  <div style={{ display: 'grid', gap: 10 }}>
+                    {notasDelDia.map((nota) => {
+                      const fecha = formatDate(nota.fechaCumplimiento);
+                      return (
+                        <div key={nota.id} className="cal-mobile-item">
+                          <div className="cal-mobile-item-title">{nota.texto || nota.titulo || 'Nota'}</div>
+                          <div className="cal-mobile-item-meta">{getMateriaNombre(nota.materiaId)}</div>
+                          {fecha && <div className="cal-mobile-item-meta">Fecha: {fecha}</div>}
+                          <button
+                            type="button"
+                            onClick={() => openNotaInMateria(nota)}
+                            style={{
+                              marginTop: 10,
+                              background: C.white,
+                              color: '#a8a8a8',
+                              border: '1px solid #a8a8a8',
+                              borderRadius: 10,
+                              padding: '8px 10px',
+                              cursor: 'pointer',
+                              fontSize: 12,
+                              fontWeight: 700,
+                            }}
+                          >
+                            Ver nota en materia
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             </div>
           </div>
