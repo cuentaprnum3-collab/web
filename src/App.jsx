@@ -354,6 +354,13 @@ const buildCss = (C) => `
     .badge-grid,
     .rt-grid-stack{grid-template-columns:1fr !important;}
 
+    /* Mis metas: el panel de insignias se ve apretado en movil, se le
+       da mas aire (menos padding lateral, mas separacion del titulo) */
+    .badge-panel{padding:16px !important;margin-bottom:90px;}
+    .badge-panel-title{font-size:14px !important;margin-bottom:10px !important;}
+    .badge-grid{gap:10px !important;}
+    .badge-item{padding:12px !important;gap:10px !important;}
+
     /* Materias: boton "+ Nueva materia" flotante abajo a la derecha en movil.
        No afecta el boton en escritorio (fuera de este media query sigue
        dentro del topbar como siempre). */
@@ -463,7 +470,6 @@ const buildCss = (C) => `
   }
 
   @media (max-width:480px){
-    .badge-grid{grid-template-columns:1fr 1fr !important;}
     .login-features{display:none;}
     .rt-cal-months{grid-template-columns:repeat(4,1fr) !important;}
   }
@@ -1049,7 +1055,7 @@ export default function ReadTrackApp() {
 
     if (reiniciandoDesdeTerminado) {
       try {
-        const response = await librosService.cambiarEstado(activeLibro.id, 'LEYENDO');
+        const response = await librosService.cambiarEstado(activeLibro.id, 'PENDIENTE');
         libroEnLectura = response.data;
         setData((d) => ({
           ...d,
@@ -2766,7 +2772,7 @@ export default function ReadTrackApp() {
               {getWeekLabel()} · {totalPaginasEstaSemana} de {data.meta.paginasSemana} páginas leídas
             </div>
           </div>
-          <button className="btn btn-lime" onClick={() => setModal('cambiar_meta')}>
+          <button className="btn btn-lime fab-nueva-materia" onClick={() => setModal('cambiar_meta')}>
             Cambiar meta
           </button>
         </div>
@@ -3599,6 +3605,7 @@ export default function ReadTrackApp() {
         handleCrearNota={handleCrearNota}
         handleEditarNota={handleEditarNota}
         handleCrearLibro={handleCrearLibro}
+        handleEditarLibro={handleEditarLibro}
         C={C}
         COLORS_MATERIA={COLORS_MATERIA}
         emailsComparticion={emailsComparticion}
@@ -3649,7 +3656,7 @@ export default function ReadTrackApp() {
   );
 }
 
-function RenderModals({ modal, setModal, data, setData, activeMateria, activeLibro, activeNota, setActiveNota, showToast, handleCrearMateria, handleCrearNota, handleEditarNota, handleCrearLibro, C, COLORS_MATERIA, emailsComparticion, setEmailsComparticion, editandoMateria, setEditandoMateria, convertirAGrupo, setConvertirAGrupo }) {
+function RenderModals({ modal, setModal, data, setData, activeMateria, activeLibro, activeNota, setActiveNota, showToast, handleCrearMateria, handleCrearNota, handleEditarNota, handleCrearLibro, handleEditarLibro, C, COLORS_MATERIA, emailsComparticion, setEmailsComparticion, editandoMateria, setEditandoMateria, convertirAGrupo, setConvertirAGrupo }) {
   const [form, setForm] = useState({});
   const [filePreviews, setFilePreviews] = useState([]);
   const close = () => { setModal(null); setForm({}); setActiveNota(null); setEmailsComparticion(''); };
