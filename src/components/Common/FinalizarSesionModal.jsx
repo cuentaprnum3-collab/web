@@ -11,7 +11,8 @@ export function FinalizarSesionModal({ libro, sesion, onConfirm, onCancel, C }) 
 
   const [paginaFinal, setPaginaFinal] = useState(getDefaultPaginaFinal());
   const [error, setError] = useState('');
-  const paginasLidas = paginaFinal - sesion.paginaInicial;
+  const paginaFinalNum = paginaFinal === '' ? 0 : Number(paginaFinal);
+  const paginasLidas = paginaFinalNum - sesion.paginaInicial;
 
   useEffect(() => {
     setPaginaFinal(getDefaultPaginaFinal());
@@ -19,17 +20,31 @@ export function FinalizarSesionModal({ libro, sesion, onConfirm, onCancel, C }) 
   }, [sesion.paginaInicial, libro.totalPaginas]);
 
   const handleConfirm = () => {
-    if (paginaFinal <= sesion.paginaInicial) {
+    if (paginaFinal === '' || paginaFinalNum <= sesion.paginaInicial) {
       setError('La página final debe ser mayor a la página inicial para guardar la sesión.');
       return;
     }
 
-    onConfirm(paginaFinal, paginasLidas);
+    onConfirm(paginaFinalNum, paginasLidas);
   };
 
   const handleInputChange = (event) => {
-    const value = parseInt(event.target.value, 10);
-    setPaginaFinal(Number.isNaN(value) ? sesion.paginaInicial : Math.min(libro.totalPaginas, Math.max(sesion.paginaInicial, value)));
+    const raw = event.target.value;
+    if (raw === '') {
+      // Permitir dejar el campo vacío mientras se escribe un nuevo número;
+      // se valida al guardar, no en cada tecla.
+      setPaginaFinal('');
+      setError('');
+      return;
+    }
+    const value = parseInt(raw, 10);
+    if (Number.isNaN(value)) return;
+    // Solo se limita el máximo (no se puede pasar del total de páginas).
+    // Antes también se forzaba un mínimo de sesion.paginaInicial en cada
+    // tecla, lo que hacía imposible escribir un número menor (por ejemplo,
+    // al intentar escribir "60" partiendo de la página 55, el primer "6"
+    // se corregía a 55, y luego seguir escribiendo terminaba en el máximo).
+    setPaginaFinal(Math.max(0, Math.min(libro.totalPaginas, value)));
     setError('');
   };
 

@@ -971,6 +971,7 @@ export default function ReadTrackApp() {
         autor: form.autor || null,
         totalPaginas: Number(form.totalPaginas) || 0,
         estado: form.estado || 'PENDIENTE',
+        paginasLeidas: form.estado === 'LEYENDO' ? (Number(form.paginasLeidas) || 0) : undefined,
       });
       setData(d => ({ ...d, libros: [response.data, ...d.libros] }));
       showToast('✅ Libro agregado a tu biblioteca');
@@ -3800,6 +3801,7 @@ function RenderModals({ modal, setModal, data, setData, activeMateria, activeLib
           { value: 'LEYENDO', label: 'Leyendo' },
           { value: 'TERMINADO', label: 'Terminado' },
         ] },
+        { key: 'paginasLeidas', label: '¿En qué página vas?', placeholder: 'Ej: 120', type: 'number', showIf: (f) => f.estado === 'LEYENDO' },
       ],
       onSave: async (form) => {
         await handleCrearLibro(form, close);
@@ -4314,7 +4316,7 @@ function RenderModals({ modal, setModal, data, setData, activeMateria, activeLib
             ×
           </button>
         </div>
-        {cfg.fields.map(f => (
+        {cfg.fields.filter(f => !f.showIf || f.showIf(form)).map(f => (
           <div key={f.key} style={{ marginBottom: 14 }}>
             <div className="field-label">{f.label}</div>
             {f.textarea ? (
