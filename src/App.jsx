@@ -301,7 +301,8 @@ const buildCss = (C) => `
   @media (max-width:900px){
     .sidebar{transform:translateX(-100%);}
     .sidebar.sidebar-open{transform:translateX(0);}
-    .main{margin-left:0;}
+    .main{margin-left:0;overflow-x:hidden;}
+    html, body{overflow-x:hidden;max-width:100vw;}
     .mobile-menu-btn{
       display:flex;align-items:center;justify-content:center;
       position:fixed;top:14px;left:14px;z-index:150;
@@ -326,6 +327,14 @@ const buildCss = (C) => `
     .dash-desktop-only{display:none !important;}
     .dash-desktop-row{display:none !important;}
     .dash-mobile-order{display:flex;flex-direction:column;gap:20px;margin-bottom:20px;}
+
+    /* Racha de lectura: la franja de 7 dias tenia ancho fijo (40px c/u) que
+       no cabe en pantallas angostas y desbordaba toda la pagina hacia la
+       derecha. Se hace flexible para que siempre quepa. */
+    .racha-card{padding:16px !important;}
+    .week-cal{gap:4px !important;}
+    .wday{width:auto !important;flex:1;min-width:0;height:42px !important;}
+    .wd-name{font-size:8px !important;}
 
     /* Stats: siempre en una sola fila de 3, mas compactas.
        min-width:0 evita que el grid/las tarjetas se desborden del
