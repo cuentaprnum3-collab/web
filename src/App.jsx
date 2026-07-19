@@ -926,7 +926,7 @@ export default function ReadTrackApp() {
     return permiso === 'granted';
   };
 
-  const mostrarNotificacionNativa = (titulo, cuerpo) => {
+  const mostrarNotificacionNativa = async (titulo, cuerpo) => {
     if (!('Notification' in window)) {
       console.warn('Este navegador no soporta Notification API');
       return;
@@ -935,22 +935,32 @@ export default function ReadTrackApp() {
       console.warn('Permiso de notificaciones no concedido:', Notification.permission);
       return;
     }
+    const opciones = {
+      body: cuerpo,
+      icon: '/vite.svg',
+      tag: 'readtrack-recordatorio-' + Date.now(), // tag unico: si repite tag antes de que la anterior se cierre, el navegador la reemplaza en silencio
+    };
     try {
-      const notif = new Notification(titulo, {
-        body: cuerpo,
-        icon: '/vite.svg',
-        tag: 'readtrack-recordatorio-' + Date.now(), // tag unico: si repite tag antes de que la anterior se cierre, el navegador la reemplaza en silencio
-      });
-      notif.onclick = () => {
-        window.focus();
-        notif.close();
-      };
-      notif.onerror = (e) => console.error('Notification onerror:', e);
-      notif.onshow = () => console.log('Notification.onshow disparado (el navegador SI la creo)');
+      // Chrome para Android (y varios navegadores moviles) bloquean el
+      // constructor new Notification() directo con "Illegal constructor" y
+      // exigen mostrarlas a traves de un Service Worker. En escritorio
+      // ambos caminos funcionan, asi que se prefiere el Service Worker
+      // cuando esta disponible para que funcione igual en los dos casos.
+      if ('serviceWorker' in navigator) {
+        const registration = await navigator.serviceWorker.ready;
+        await registration.showNotification(titulo, opciones);
+      } else {
+        const notif = new Notification(titulo, opciones);
+        notif.onclick = () => {
+          window.focus();
+          notif.close();
+        };
+      }
       // Confirmacion en pantalla de que el codigo se ejecuto sin errores.
       // Si Chrome tiene la pestaña enfocada, no muestra el globo emergente
-      // y la manda directo al Centro de notificaciones de Windows/macOS,
-      // asi que esto ayuda a distinguir "no se ejecuto" de "el sistema la escondio".
+      // y la manda directo al Centro de notificaciones de Windows/macOS/
+      // Android, asi que esto ayuda a distinguir "no se ejecuto" de "el
+      // sistema la escondio".
       showToast('🔔 Notificación creada (si no ves el globo emergente, revisa el Centro de notificaciones del sistema)');
     } catch (e) {
       console.error('Error mostrando notificación:', e);
