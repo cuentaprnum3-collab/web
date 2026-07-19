@@ -992,7 +992,10 @@ export default function ReadTrackApp() {
         const esDeGrupo = materiasGrupoIds.has(n.materiaId);
         if (fuente === 'propias' && esDeGrupo) return false;
         if (fuente === 'grupo' && !esDeGrupo) return false;
-        return new Date(n.fechaCumplimiento) <= ahora;
+        // Solo notas cuya fecha de cumplimiento es HOY (no cualquier fecha
+        // pasada; una nota vencida hace semanas no debe seguir avisando
+        // todos los dias para siempre).
+        return formatLocalDateString(new Date(n.fechaCumplimiento)) === hoyStr;
       });
 
       localStorage.setItem('readtrack_recordatorio_ultimo_envio', hoyStr);
@@ -1013,18 +1016,28 @@ export default function ReadTrackApp() {
   // Aviso cuando se agrega una nota nueva en una materia de grupo
   const notasGrupoVistasRef = useRef(null);
   useEffect(() => {
+    // Importante: mientras la carga inicial de datos sigue en curso,
+    // data.notas todavia esta vacio (el placeholder inicial), asi que hay
+    // que esperar a que termine para no tomar ese arreglo vacio como base
+    // y terminar "avisando" de todas las notas viejas ya existentes.
+    if (loading) return;
+
     const materiasGrupoIds = new Set(data.materias.filter(m => m.esGrupo).map(m => m.id));
     const notasGrupoActuales = data.notas.filter(n => materiasGrupoIds.has(n.materiaId));
     const idsActuales = new Set(notasGrupoActuales.map(n => n.id));
 
     if (notasGrupoVistasRef.current === null) {
-      // Primera carga: solo se guarda el set inicial, no se notifica nada retroactivo.
+      // Primera vez con datos reales ya cargados: solo se guarda el set
+      // inicial, no se notifica nada retroactivo.
       notasGrupoVistasRef.current = idsActuales;
       return;
     }
 
     if (data.config.notificarNotasGrupo && typeof Notification !== 'undefined' && Notification.permission === 'granted') {
-      const nuevas = notasGrupoActuales.filter(n => !notasGrupoVistasRef.current.has(n.id) && n.usuarioId !== user?.id);
+      // El campo del autor de la nota es "autorId" (no "usuarioId"). Con
+      // esto nos aseguramos de notificar solo las notas que agregó un
+      // compañero, y nunca las que el propio usuario acaba de crear.
+      const nuevas = notasGrupoActuales.filter(n => !notasGrupoVistasRef.current.has(n.id) && n.autorId !== user?.id);
       nuevas.forEach(n => {
         const materia = data.materias.find(m => m.id === n.materiaId);
         mostrarNotificacionNativa(
@@ -1035,7 +1048,7 @@ export default function ReadTrackApp() {
     }
 
     notasGrupoVistasRef.current = idsActuales;
-  }, [data.notas, data.materias, data.config.notificarNotasGrupo, user?.id]);
+  }, [loading, data.notas, data.materias, data.config.notificarNotasGrupo, user?.id]);
 
   const handleCrearMateria = async (form, close) => {
     if (!form.nombre) {
