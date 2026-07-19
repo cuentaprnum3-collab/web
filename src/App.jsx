@@ -963,7 +963,7 @@ export default function ReadTrackApp() {
   useEffect(() => {
     const revisar = () => {
       if (!data.config.recordatorios) return;
-      if (Notification?.permission !== 'granted') return;
+      if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
 
       const silenciadoHasta = data.config.recordatorioSilenciadoHasta;
       if (silenciadoHasta && new Date(silenciadoHasta) > new Date()) return;
@@ -1013,7 +1013,7 @@ export default function ReadTrackApp() {
       return;
     }
 
-    if (data.config.notificarNotasGrupo && Notification?.permission === 'granted') {
+    if (data.config.notificarNotasGrupo && typeof Notification !== 'undefined' && Notification.permission === 'granted') {
       const nuevas = notasGrupoActuales.filter(n => !notasGrupoVistasRef.current.has(n.id) && n.usuarioId !== user?.id);
       nuevas.forEach(n => {
         const materia = data.materias.find(m => m.id === n.materiaId);
