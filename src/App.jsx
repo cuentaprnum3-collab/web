@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { THEME, COLORS_MATERIA, CONFIG } from './config';
 import { useAuth } from './hooks/useAuth';
 import {
@@ -526,6 +526,24 @@ export default function ReadTrackApp() {
   const MONTH_NAMES = ['ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO','JULIO','AGOSTO','SEPTIEMBRE','OCTUBRE','NOVIEMBRE','DICIEMBRE'];
   const MONTH_NAMES_SHORT = ['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV','DIC'];
 
+  const NOTIF_CONFIG_STORAGE_KEY = 'readtrack_notif_config';
+  const DEFAULT_NOTIF_CONFIG = {
+    recordatorios: true,
+    modoOscuro: false,
+    recordatorioHora: '08:00',
+    recordatorioSilenciadoHasta: null, // fecha ISO hasta la que se silencian los recordatorios
+    recordatorioFuente: 'todas', // 'todas' | 'propias' | 'grupo'
+    notificarNotasGrupo: true,
+  };
+  const cargarConfigGuardada = () => {
+    try {
+      const guardada = localStorage.getItem(NOTIF_CONFIG_STORAGE_KEY);
+      return guardada ? { ...DEFAULT_NOTIF_CONFIG, ...JSON.parse(guardada) } : DEFAULT_NOTIF_CONFIG;
+    } catch {
+      return DEFAULT_NOTIF_CONFIG;
+    }
+  };
+
   const [data, setData] = useState({
     user: user,
     materias: [],
@@ -535,9 +553,20 @@ export default function ReadTrackApp() {
     meta: { paginasSemana: 400, paginasLeidas: 0, porcentaje: 0, historial: [] },
     racha: { actual: 5, maxima: 7 },
     logros: [],
-    config: { recordatorios: true, modoOscuro: false },
+    config: cargarConfigGuardada(),
     actividadSemanal: [],
   });
+
+  // Las preferencias de notificaciones/recordatorios son propias de este
+  // navegador (los permisos de notificacion tambien lo son), asi que se
+  // guardan en localStorage en vez del backend.
+  useEffect(() => {
+    try {
+      localStorage.setItem(NOTIF_CONFIG_STORAGE_KEY, JSON.stringify(data.config));
+    } catch {
+      // Si localStorage no esta disponible simplemente no persistimos.
+    }
+  }, [data.config]);
 
   const themeColors = data.config.modoOscuro ? DARK_THEME : THEME.colors;
   const C = themeColors;
@@ -878,6 +907,110 @@ export default function ReadTrackApp() {
     setToast(msg);
     setTimeout(() => setToast(null), 3000);
   };
+
+  // ===== Notificaciones nativas del navegador (recordatorios) =====
+  const solicitarPermisoNotificaciones = async () => {
+    if (!('Notification' in window)) {
+      showToast('Tu navegador no soporta notificaciones');
+      return false;
+    }
+    if (Notification.permission === 'granted') return true;
+    if (Notification.permission === 'denied') {
+      showToast('Las notificaciones están bloqueadas para este sitio. Actívalas desde la configuración del navegador.');
+      return false;
+    }
+    const permiso = await Notification.requestPermission();
+    if (permiso !== 'granted') {
+      showToast('No se concedió permiso para mostrar notificaciones');
+    }
+    return permiso === 'granted';
+  };
+
+  const mostrarNotificacionNativa = (titulo, cuerpo) => {
+    if (!('Notification' in window) || Notification.permission !== 'granted') return;
+    try {
+      const notif = new Notification(titulo, {
+        body: cuerpo,
+        icon: '/vite.svg',
+        tag: 'readtrack-recordatorio',
+      });
+      notif.onclick = () => {
+        window.focus();
+        notif.close();
+      };
+    } catch (e) {
+      console.error('Error mostrando notificación:', e);
+    }
+  };
+
+  // Chequeo periódico: ¿ya es la hora configurada del recordatorio y hay
+  // notas pendientes con fecha de cumplimiento según la fuente elegida?
+  useEffect(() => {
+    const revisar = () => {
+      if (!data.config.recordatorios) return;
+      if (Notification?.permission !== 'granted') return;
+
+      const silenciadoHasta = data.config.recordatorioSilenciadoHasta;
+      if (silenciadoHasta && new Date(silenciadoHasta) > new Date()) return;
+
+      const ahora = new Date();
+      const horaActual = `${String(ahora.getHours()).padStart(2, '0')}:${String(ahora.getMinutes()).padStart(2, '0')}`;
+      if (horaActual !== (data.config.recordatorioHora || '08:00')) return;
+
+      const hoyStr = formatLocalDateString(ahora);
+      if (localStorage.getItem('readtrack_recordatorio_ultimo_envio') === hoyStr) return;
+
+      const materiasGrupoIds = new Set(data.materias.filter(m => m.esGrupo).map(m => m.id));
+      const fuente = data.config.recordatorioFuente || 'todas';
+      const notasPendientes = data.notas.filter(n => {
+        if (!n.fechaCumplimiento) return false;
+        const esDeGrupo = materiasGrupoIds.has(n.materiaId);
+        if (fuente === 'propias' && esDeGrupo) return false;
+        if (fuente === 'grupo' && !esDeGrupo) return false;
+        return new Date(n.fechaCumplimiento) <= ahora;
+      });
+
+      localStorage.setItem('readtrack_recordatorio_ultimo_envio', hoyStr);
+
+      if (notasPendientes.length > 0) {
+        mostrarNotificacionNativa(
+          '📚 ReadTrack UTS · Recordatorio de lectura',
+          `Tienes ${notasPendientes.length} nota${notasPendientes.length > 1 ? 's' : ''} pendiente${notasPendientes.length > 1 ? 's' : ''} con fecha de cumplimiento.`
+        );
+      }
+    };
+
+    const intervalo = setInterval(revisar, 30000);
+    revisar();
+    return () => clearInterval(intervalo);
+  }, [data.config, data.notas, data.materias]);
+
+  // Aviso cuando se agrega una nota nueva en una materia de grupo
+  const notasGrupoVistasRef = useRef(null);
+  useEffect(() => {
+    const materiasGrupoIds = new Set(data.materias.filter(m => m.esGrupo).map(m => m.id));
+    const notasGrupoActuales = data.notas.filter(n => materiasGrupoIds.has(n.materiaId));
+    const idsActuales = new Set(notasGrupoActuales.map(n => n.id));
+
+    if (notasGrupoVistasRef.current === null) {
+      // Primera carga: solo se guarda el set inicial, no se notifica nada retroactivo.
+      notasGrupoVistasRef.current = idsActuales;
+      return;
+    }
+
+    if (data.config.notificarNotasGrupo && Notification?.permission === 'granted') {
+      const nuevas = notasGrupoActuales.filter(n => !notasGrupoVistasRef.current.has(n.id) && n.usuarioId !== user?.id);
+      nuevas.forEach(n => {
+        const materia = data.materias.find(m => m.id === n.materiaId);
+        mostrarNotificacionNativa(
+          '👥 Nueva nota en grupo',
+          `Se agregó una nota nueva en "${materia?.nombre || 'un grupo'}".`
+        );
+      });
+    }
+
+    notasGrupoVistasRef.current = idsActuales;
+  }, [data.notas, data.materias, data.config.notificarNotasGrupo, user?.id]);
 
   const handleCrearMateria = async (form, close) => {
     if (!form.nombre) {
@@ -3321,26 +3454,52 @@ export default function ReadTrackApp() {
             <div className="card">
               <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 16 }}>Configuración</div>
               {[
-                { ic: <span style={{ fontSize: 16 }}>🔔</span>, bg: 'rgba(124,42,142,.08)', title: 'Recordatorios de lectura', sub: '8:00 am · Todos los días', toggle: true, key: 'recordatorios' },
+                {
+                  ic: <span style={{ fontSize: 16 }}>🔔</span>,
+                  bg: 'rgba(124,42,142,.08)',
+                  title: 'Recordatorios de lectura',
+                  sub: data.config.recordatorios
+                    ? `${data.config.recordatorioHora || '08:00'} · ${
+                        data.config.recordatorioFuente === 'propias' ? 'Solo materias propias'
+                        : data.config.recordatorioFuente === 'grupo' ? 'Solo materias en grupo'
+                        : 'Todas tus materias'
+                      }`
+                    : 'Desactivados',
+                  toggle: true,
+                  key: 'recordatorios',
+                  configurable: true,
+                },
                 { ic: <span style={{ fontSize: 16 }}>🌙</span>, bg: 'rgba(41,49,60,.06)', title: 'Modo oscuro', sub: 'Activar tema oscuro', toggle: true, key: 'modoOscuro' },
               ].map((s, i) => (
                 <div
                   key={i}
-                  style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 0', borderBottom: i < 2 ? `1px solid ${C.g200}` : 'none', cursor: 'pointer' }}
-                  onClick={() => {
-                    if (s.danger) logout();
-                    if (s.key) setData(d => ({ ...d, config: { ...d.config, [s.key]: !d.config[s.key] } }));
-                  }}
+                  style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 0', borderBottom: i < 2 ? `1px solid ${C.g200}` : 'none' }}
                 >
-                  <div style={{ width: 36, height: 36, borderRadius: 11, display: 'flex', alignItems: 'center', justifyContent: 'center', background: s.bg, flexShrink: 0 }}>
-                    {s.ic}
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: s.danger ? '#ef4444' : C.tPrimary }}>{s.title}</div>
-                    {s.sub && <div style={{ fontSize: 11, color: C.tHint, marginTop: 1 }}>{s.sub}</div>}
+                  <div
+                    style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1, cursor: s.configurable ? 'pointer' : 'default' }}
+                    onClick={() => {
+                      if (s.configurable) setModal('configurar_recordatorios');
+                    }}
+                  >
+                    <div style={{ width: 36, height: 36, borderRadius: 11, display: 'flex', alignItems: 'center', justifyContent: 'center', background: s.bg, flexShrink: 0 }}>
+                      {s.ic}
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: s.danger ? '#ef4444' : C.tPrimary }}>{s.title}</div>
+                      {s.sub && <div style={{ fontSize: 11, color: C.tHint, marginTop: 1 }}>{s.sub}</div>}
+                    </div>
+                    {s.configurable && (
+                      <span style={{ fontSize: 11, fontWeight: 700, color: C.purple }}>Configurar ›</span>
+                    )}
                   </div>
                   {s.toggle && (
-                    <div style={{ width: 44, height: 24, borderRadius: 12, background: data.config[s.key] ? C.lime : C.g300, position: 'relative', transition: 'background .2s', flexShrink: 0 }}>
+                    <div
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (s.key) setData(d => ({ ...d, config: { ...d.config, [s.key]: !d.config[s.key] } }));
+                      }}
+                      style={{ width: 44, height: 24, borderRadius: 12, background: data.config[s.key] ? C.lime : C.g300, position: 'relative', transition: 'background .2s', flexShrink: 0, cursor: 'pointer' }}
+                    >
                       <div style={{ width: 20, height: 20, background: '#fff', borderRadius: '50%', position: 'absolute', top: 2, left: data.config[s.key] ? 22 : 2, transition: 'left .2s', boxShadow: '0 2px 4px rgba(0,0,0,.15)' }}></div>
                     </div>
                   )}
@@ -3615,6 +3774,8 @@ export default function ReadTrackApp() {
         setEditandoMateria={setEditandoMateria}
         convertirAGrupo={convertirAGrupo}
         setConvertirAGrupo={setConvertirAGrupo}
+        solicitarPermisoNotificaciones={solicitarPermisoNotificaciones}
+        mostrarNotificacionNativa={mostrarNotificacionNativa}
       />}
 
       {renderEditProfileModal()}
@@ -3657,7 +3818,7 @@ export default function ReadTrackApp() {
   );
 }
 
-function RenderModals({ modal, setModal, data, setData, activeMateria, activeLibro, activeNota, setActiveNota, showToast, handleCrearMateria, handleCrearNota, handleEditarNota, handleCrearLibro, handleEditarLibro, C, COLORS_MATERIA, emailsComparticion, setEmailsComparticion, editandoMateria, setEditandoMateria, convertirAGrupo, setConvertirAGrupo }) {
+function RenderModals({ modal, setModal, data, setData, activeMateria, activeLibro, activeNota, setActiveNota, showToast, handleCrearMateria, handleCrearNota, handleEditarNota, handleCrearLibro, handleEditarLibro, C, COLORS_MATERIA, emailsComparticion, setEmailsComparticion, editandoMateria, setEditandoMateria, convertirAGrupo, setConvertirAGrupo, solicitarPermisoNotificaciones, mostrarNotificacionNativa }) {
   const [form, setForm] = useState({});
   const [filePreviews, setFilePreviews] = useState([]);
   const close = () => { setModal(null); setForm({}); setActiveNota(null); setEmailsComparticion(''); };
@@ -3882,6 +4043,10 @@ function RenderModals({ modal, setModal, data, setData, activeMateria, activeLib
     },
     compartir_materia: {
       title: 'Compartir materia con compañeros',
+      customContent: true,
+    },
+    configurar_recordatorios: {
+      title: 'Configurar recordatorios',
       customContent: true,
     },
     buscar_grupo: {
@@ -4262,7 +4427,7 @@ function RenderModals({ modal, setModal, data, setData, activeMateria, activeLib
             <button className="btn btn-ghost" style={{ flex: 1, justifyContent: 'center' }} onClick={close}>
               Cancelar
             </button>
-             <button 
+            <button 
               className="btn btn-lime" 
               style={{ flex: 1, justifyContent: 'center' }} 
               onClick={async () => {
@@ -4272,32 +4437,189 @@ function RenderModals({ modal, setModal, data, setData, activeMateria, activeLib
                   return;
                 }
                 try {
-                  const response = await fetch(`${CONFIG.API_BASE_URL}/materias/${activeMateria.id}/compartir`, {
-                    method: 'POST',
-                    headers: {
-                      'Authorization': `Bearer ${localStorage.getItem(CONFIG.TOKEN_STORAGE_KEY)}`,
-                      'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ emails })
-                  });
-                  
-                  if (!response.ok) {
-                    const errJson = await response.json().catch(() => ({}));
-                    showToast(errJson.mensaje || 'Error al compartir la materia');
-                    return;
-                  }
-                  
-                  const okJson = await response.json().catch(() => ({}));
-                  showToast('✅ ' + (okJson.datos?.mensaje || `Compartida con ${emails.length} compañero${emails.length > 1 ? 's' : ''}`));
+                  const response = await materiasService.compartir(activeMateria.id, emails);
+                  showToast('✅ ' + (response.data?.mensaje || `Compartida con ${emails.length} compañero${emails.length > 1 ? 's' : ''}`));
                   setEmailsComparticion('');
                   close();
                 } catch (err) {
-                  console.error('Error:', err);
-                  showToast('Error al compartir la materia');
+                  console.error('Error al compartir materia:', err);
+                  showToast(err.data?.mensaje || 'Error al compartir la materia');
                 }
               }}
             >
               Compartir
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (modal === 'configurar_recordatorios') {
+    const cfgNotif = data.config;
+    const permisoActual = typeof Notification !== 'undefined' ? Notification.permission : 'unsupported';
+    const silenciadoHasta = cfgNotif.recordatorioSilenciadoHasta;
+    const estaSilenciado = silenciadoHasta && new Date(silenciadoHasta) > new Date();
+
+    const actualizarConfig = (cambios) => {
+      setData(d => ({ ...d, config: { ...d.config, ...cambios } }));
+    };
+
+    return (
+      <div className="modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) close(); }}>
+        <div className="modal" style={{ maxWidth: 480 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+            <div className="modal-title" style={{ margin: 0 }}>
+              {cfg.title}
+            </div>
+            <button onClick={close} style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.tHint, fontSize: 20 }}>
+              ×
+            </button>
+          </div>
+
+          {/* Estado del permiso del navegador */}
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20, padding: 12,
+            borderRadius: 12,
+            background: permisoActual === 'granted' ? 'rgba(190,213,47,.12)' : 'rgba(239,68,68,.08)',
+            border: `1px solid ${permisoActual === 'granted' ? 'rgba(190,213,47,.3)' : 'rgba(239,68,68,.25)'}`,
+          }}>
+            <div style={{ fontSize: 18 }}>{permisoActual === 'granted' ? '🔔' : '🔕'}</div>
+            <div style={{ flex: 1, fontSize: 12, color: C.tSecondary }}>
+              {permisoActual === 'granted' && 'Las notificaciones de este navegador están activadas.'}
+              {permisoActual === 'denied' && 'Bloqueaste las notificaciones para este sitio. Actívalas desde los ajustes de tu navegador para poder recibirlas.'}
+              {permisoActual === 'default' && 'Aún no has dado permiso para recibir notificaciones en este navegador.'}
+              {permisoActual === 'unsupported' && 'Tu navegador no soporta notificaciones.'}
+            </div>
+            {permisoActual !== 'granted' && permisoActual !== 'unsupported' && (
+              <button
+                type="button"
+                className="btn btn-lime btn-sm"
+                style={{ flexShrink: 0 }}
+                onClick={async () => {
+                  const ok = await solicitarPermisoNotificaciones();
+                  if (ok) showToast('✅ Notificaciones activadas');
+                }}
+              >
+                Activar
+              </button>
+            )}
+          </div>
+
+          {/* Hora del recordatorio */}
+          <div style={{ marginBottom: 16 }}>
+            <div className="field-label">Hora del recordatorio</div>
+            <input
+              type="time"
+              className="field-input"
+              value={cfgNotif.recordatorioHora || '08:00'}
+              onChange={(e) => actualizarConfig({ recordatorioHora: e.target.value })}
+            />
+            <div style={{ fontSize: 11, color: C.tHint, marginTop: 6 }}>
+              Todos los días a esta hora, si tienes notas con fecha de cumplimiento pendientes, te llega una notificación.
+            </div>
+          </div>
+
+          {/* Fuente de materias */}
+          <div style={{ marginBottom: 16 }}>
+            <div className="field-label">Avisarme sobre notas de</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 6 }}>
+              {[
+                { value: 'todas', label: 'Todas mis materias (propias y de grupo)' },
+                { value: 'propias', label: 'Solo mis materias propias' },
+                { value: 'grupo', label: 'Solo materias en grupo' },
+              ].map(opt => (
+                <label key={opt.value} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, color: C.tSecondary, cursor: 'pointer' }}>
+                  <input
+                    type="radio"
+                    name="recordatorioFuente"
+                    checked={(cfgNotif.recordatorioFuente || 'todas') === opt.value}
+                    onChange={() => actualizarConfig({ recordatorioFuente: opt.value })}
+                  />
+                  {opt.label}
+                </label>
+              ))}
+            </div>
+          </div>
+
+          {/* Notas nuevas en grupo */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16, paddingTop: 4 }}>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: C.tPrimary }}>Avisarme de notas nuevas en grupo</div>
+              <div style={{ fontSize: 11, color: C.tHint, marginTop: 2 }}>
+                Notificación cuando un compañero agrega una nota en una materia de grupo
+              </div>
+            </div>
+            <div
+              onClick={() => actualizarConfig({ notificarNotasGrupo: !cfgNotif.notificarNotasGrupo })}
+              style={{ width: 44, height: 24, borderRadius: 12, background: cfgNotif.notificarNotasGrupo ? C.lime : C.g300, position: 'relative', transition: 'background .2s', flexShrink: 0, cursor: 'pointer' }}
+            >
+              <div style={{ width: 20, height: 20, background: '#fff', borderRadius: '50%', position: 'absolute', top: 2, left: cfgNotif.notificarNotasGrupo ? 22 : 2, transition: 'left .2s', boxShadow: '0 2px 4px rgba(0,0,0,.15)' }}></div>
+            </div>
+          </div>
+
+          {/* Silenciar por X días */}
+          <div style={{ background: C.g100, borderRadius: 12, padding: 14, marginBottom: 20 }}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: C.tPrimary, marginBottom: 8 }}>
+              {estaSilenciado ? `🔕 Silenciado hasta ${new Date(silenciadoHasta).toLocaleDateString('es-ES')}` : 'Silenciar notificaciones'}
+            </div>
+            {estaSilenciado ? (
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm"
+                onClick={() => {
+                  actualizarConfig({ recordatorioSilenciadoHasta: null });
+                  showToast('🔔 Recordatorios reactivados');
+                }}
+              >
+                Quitar silencio
+              </button>
+            ) : (
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                <input
+                  id="dias-silencio-input"
+                  type="number"
+                  min="1"
+                  max="90"
+                  defaultValue="3"
+                  className="field-input"
+                  style={{ width: 90 }}
+                />
+                <span style={{ fontSize: 12, color: C.tSecondary }}>días</span>
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-sm"
+                  style={{ marginLeft: 'auto' }}
+                  onClick={() => {
+                    const input = document.getElementById('dias-silencio-input');
+                    const dias = Math.max(1, parseInt(input?.value, 10) || 3);
+                    const hasta = new Date();
+                    hasta.setDate(hasta.getDate() + dias);
+                    actualizarConfig({ recordatorioSilenciadoHasta: hasta.toISOString() });
+                    showToast(`🔕 Recordatorios silenciados por ${dias} día${dias > 1 ? 's' : ''}`);
+                  }}
+                >
+                  Silenciar
+                </button>
+              </div>
+            )}
+          </div>
+
+          <div style={{ display: 'flex', gap: 10 }}>
+            <button
+              className="btn btn-ghost"
+              style={{ flex: 1, justifyContent: 'center' }}
+              onClick={async () => {
+                const ok = await solicitarPermisoNotificaciones();
+                if (ok) {
+                  mostrarNotificacionNativa('📚 ReadTrack UTS', 'Así se verán tus recordatorios de lectura.');
+                }
+              }}
+            >
+              Probar notificación
+            </button>
+            <button className="btn btn-lime" style={{ flex: 1, justifyContent: 'center' }} onClick={close}>
+              Listo
             </button>
           </div>
         </div>
