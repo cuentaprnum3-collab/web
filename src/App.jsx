@@ -927,19 +927,34 @@ export default function ReadTrackApp() {
   };
 
   const mostrarNotificacionNativa = (titulo, cuerpo) => {
-    if (!('Notification' in window) || Notification.permission !== 'granted') return;
+    if (!('Notification' in window)) {
+      console.warn('Este navegador no soporta Notification API');
+      return;
+    }
+    if (Notification.permission !== 'granted') {
+      console.warn('Permiso de notificaciones no concedido:', Notification.permission);
+      return;
+    }
     try {
       const notif = new Notification(titulo, {
         body: cuerpo,
         icon: '/vite.svg',
-        tag: 'readtrack-recordatorio',
+        tag: 'readtrack-recordatorio-' + Date.now(), // tag unico: si repite tag antes de que la anterior se cierre, el navegador la reemplaza en silencio
       });
       notif.onclick = () => {
         window.focus();
         notif.close();
       };
+      notif.onerror = (e) => console.error('Notification onerror:', e);
+      notif.onshow = () => console.log('Notification.onshow disparado (el navegador SI la creo)');
+      // Confirmacion en pantalla de que el codigo se ejecuto sin errores.
+      // Si Chrome tiene la pestaña enfocada, no muestra el globo emergente
+      // y la manda directo al Centro de notificaciones de Windows/macOS,
+      // asi que esto ayuda a distinguir "no se ejecuto" de "el sistema la escondio".
+      showToast('🔔 Notificación creada (si no ves el globo emergente, revisa el Centro de notificaciones del sistema)');
     } catch (e) {
       console.error('Error mostrando notificación:', e);
+      showToast('❌ Error al crear la notificación: ' + e.message);
     }
   };
 
