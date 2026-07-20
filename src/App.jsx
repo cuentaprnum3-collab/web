@@ -1030,14 +1030,23 @@ export default function ReadTrackApp() {
     // "avisando" de todas las notas viejas ya existentes.
     if (!datosListosRef.current) return;
 
-    const materiasGrupoIds = new Set(data.materias.filter(m => m.esGrupo).map(m => m.id));
+    const materiasGrupo = data.materias.filter(m => m.esGrupo);
+    const materiasGrupoIds = new Set(materiasGrupo.map(m => m.id));
     const notasGrupoActuales = data.notas.filter(n => materiasGrupoIds.has(n.materiaId));
     const idsActuales = new Set(notasGrupoActuales.map(n => n.id));
+
+    console.log('[notif-grupo] chequeo:', {
+      miUserId: user?.id,
+      materiasGrupo: materiasGrupo.map(m => ({ id: m.id, nombre: m.nombre, dueño: m.usuarioId })),
+      notasGrupoActuales: notasGrupoActuales.map(n => ({ id: n.id, materiaId: n.materiaId, autorId: n.autorId, texto: (n.texto || '').slice(0, 20) })),
+      vistasAntes: notasGrupoVistasRef.current ? [...notasGrupoVistasRef.current] : null,
+    });
 
     if (notasGrupoVistasRef.current === null) {
       // Primera vez con datos reales ya cargados: solo se guarda el set
       // inicial, no se notifica nada retroactivo.
       notasGrupoVistasRef.current = idsActuales;
+      console.log('[notif-grupo] primera carga, guardando base sin notificar:', [...idsActuales]);
       return;
     }
 
@@ -1046,6 +1055,7 @@ export default function ReadTrackApp() {
       // esto nos aseguramos de notificar solo las notas que agregó un
       // compañero, y nunca las que el propio usuario acaba de crear.
       const nuevas = notasGrupoActuales.filter(n => !notasGrupoVistasRef.current.has(n.id) && n.autorId !== user?.id);
+      console.log('[notif-grupo] notas nuevas detectadas:', nuevas.map(n => ({ id: n.id, materiaId: n.materiaId, autorId: n.autorId })));
       nuevas.forEach(n => {
         const materia = data.materias.find(m => m.id === n.materiaId);
         mostrarNotificacionNativa(
