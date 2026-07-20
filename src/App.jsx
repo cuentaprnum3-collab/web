@@ -1075,15 +1075,18 @@ export default function ReadTrackApp() {
   // antes solo aparecia si recargabas la pagina a mano).
   useEffect(() => {
     const activo = data.config.notificarNotasGrupo || data.config.recordatorios;
+    console.log('[poll] efecto de sondeo montado, activo=', activo, { notificarNotasGrupo: data.config.notificarNotasGrupo, recordatorios: data.config.recordatorios });
     if (!activo) return;
 
-    const actualizarEnSegundoPlano = async () => {
+    const actualizarEnSegundoPlano = async (origen) => {
+      console.log(`[poll] disparado por: ${origen}, datosListos=${datosListosRef.current}`);
       if (!datosListosRef.current) return; // aun no termina la carga inicial
       try {
         const [notasResp, materiasResp] = await Promise.all([
-          notasService.listar().catch(() => null),
-          materiasService.listar().catch(() => null),
+          notasService.listar().catch((e) => { console.error('[poll] error notasService.listar:', e); return null; }),
+          materiasService.listar().catch((e) => { console.error('[poll] error materiasService.listar:', e); return null; }),
         ]);
+        console.log('[poll] respuesta:', { notas: notasResp?.data?.length, materias: materiasResp?.data?.length });
         setData(d => ({
           ...d,
           notas: notasResp?.data || d.notas,
@@ -1095,7 +1098,7 @@ export default function ReadTrackApp() {
     };
 
     // Cada 60 segundos mientras la pestaña esta abierta...
-    const intervalo = setInterval(actualizarEnSegundoPlano, 60000);
+    const intervalo = setInterval(() => actualizarEnSegundoPlano('intervalo 60s'), 60000);
 
     // ...y tambien apenas vuelves a esta pestaña despues de estar en otra
     // app o con la pantalla bloqueada (los navegadores pausan los timers
@@ -1103,7 +1106,8 @@ export default function ReadTrackApp() {
     // arriba no es confiable mientras el celular esta con la pantalla
     // apagada; esto ayuda a que se ponga al dia apenas vuelves a mirarla).
     const onVisibilityChange = () => {
-      if (document.visibilityState === 'visible') actualizarEnSegundoPlano();
+      console.log('[poll] visibilitychange, estado:', document.visibilityState);
+      if (document.visibilityState === 'visible') actualizarEnSegundoPlano('volviste a la pestaña');
     };
     document.addEventListener('visibilitychange', onVisibilityChange);
 
