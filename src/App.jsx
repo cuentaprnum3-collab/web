@@ -750,6 +750,13 @@ export default function ReadTrackApp() {
     }
   };
 
+  // Bandera confiable de "ya hubo al menos una carga real de datos".
+  // No se puede usar solo el estado 'loading' porque su valor inicial es
+  // false (arranca en false ANTES de que loadAppData siquiera se llame),
+  // asi que durante ese primer instante loading tambien parece "false"
+  // aunque los datos reales todavia no llegaron.
+  const datosListosRef = useRef(false);
+
   const loadAppData = async () => {
     setLoading(true);
     try {
@@ -862,6 +869,7 @@ export default function ReadTrackApp() {
       console.error('Error cargando datos:', err);
     }
     setLoading(false);
+    datosListosRef.current = true;
   };
 
   const openNotaRapida = async () => {
@@ -1016,11 +1024,11 @@ export default function ReadTrackApp() {
   // Aviso cuando se agrega una nota nueva en una materia de grupo
   const notasGrupoVistasRef = useRef(null);
   useEffect(() => {
-    // Importante: mientras la carga inicial de datos sigue en curso,
-    // data.notas todavia esta vacio (el placeholder inicial), asi que hay
-    // que esperar a que termine para no tomar ese arreglo vacio como base
-    // y terminar "avisando" de todas las notas viejas ya existentes.
-    if (loading) return;
+    // Importante: antes de la primera carga real de datos, data.notas
+    // todavia esta vacio (el placeholder inicial), asi que hay que esperar
+    // a que termine para no tomar ese arreglo vacio como base y terminar
+    // "avisando" de todas las notas viejas ya existentes.
+    if (!datosListosRef.current) return;
 
     const materiasGrupoIds = new Set(data.materias.filter(m => m.esGrupo).map(m => m.id));
     const notasGrupoActuales = data.notas.filter(n => materiasGrupoIds.has(n.materiaId));
@@ -1048,7 +1056,52 @@ export default function ReadTrackApp() {
     }
 
     notasGrupoVistasRef.current = idsActuales;
-  }, [loading, data.notas, data.materias, data.config.notificarNotasGrupo, user?.id]);
+  }, [data.notas, data.materias, data.config.notificarNotasGrupo, user?.id]);
+
+  // Actualizacion periodica en segundo plano de notas y materias.
+  // Sin esto, data.notas solo se llena una vez al cargar la pagina y nunca
+  // vuelve a pedirse al servidor, asi que una nota que agregue un
+  // compañero mientras ya tienes la app abierta nunca se detecta (por eso
+  // antes solo aparecia si recargabas la pagina a mano).
+  useEffect(() => {
+    const activo = data.config.notificarNotasGrupo || data.config.recordatorios;
+    if (!activo) return;
+
+    const actualizarEnSegundoPlano = async () => {
+      if (!datosListosRef.current) return; // aun no termina la carga inicial
+      try {
+        const [notasResp, materiasResp] = await Promise.all([
+          notasService.listar().catch(() => null),
+          materiasService.listar().catch(() => null),
+        ]);
+        setData(d => ({
+          ...d,
+          notas: notasResp?.data || d.notas,
+          materias: materiasResp?.data || d.materias,
+        }));
+      } catch (e) {
+        console.error('Error actualizando notas/materias en segundo plano:', e);
+      }
+    };
+
+    // Cada 60 segundos mientras la pestaña esta abierta...
+    const intervalo = setInterval(actualizarEnSegundoPlano, 60000);
+
+    // ...y tambien apenas vuelves a esta pestaña despues de estar en otra
+    // app o con la pantalla bloqueada (los navegadores pausan los timers
+    // en segundo plano para ahorrar batería, asi que el intervalo de
+    // arriba no es confiable mientras el celular esta con la pantalla
+    // apagada; esto ayuda a que se ponga al dia apenas vuelves a mirarla).
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible') actualizarEnSegundoPlano();
+    };
+    document.addEventListener('visibilitychange', onVisibilityChange);
+
+    return () => {
+      clearInterval(intervalo);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+    };
+  }, [data.config.notificarNotasGrupo, data.config.recordatorios]);
 
   const handleCrearMateria = async (form, close) => {
     if (!form.nombre) {
