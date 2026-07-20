@@ -1098,7 +1098,7 @@ export default function ReadTrackApp() {
     };
 
     // Cada 60 segundos mientras la pestaña esta abierta...
-    const intervalo = setInterval(() => actualizarEnSegundoPlano('intervalo 60s'), 60000);
+    const intervalo = setInterval(() => actualizarEnSegundoPlano('intervalo 10s'), 10000);
 
     // ...y tambien apenas vuelves a esta pestaña despues de estar en otra
     // app o con la pantalla bloqueada (los navegadores pausan los timers
