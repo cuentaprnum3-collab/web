@@ -78,6 +78,30 @@ const DARK_THEME = {
   tHint: '#9ca3af',
 };
 
+const ACENTO_PRESETS = [
+  { value: '#bed52f', label: 'Lima (original)' },
+  { value: '#38bdf8', label: 'Celeste' },
+  { value: '#f97316', label: 'Naranja' },
+  { value: '#ec4899', label: 'Rosa' },
+  { value: '#10b981', label: 'Esmeralda' },
+  { value: '#f59e0b', label: 'Ámbar' },
+  { value: '#8b5cf6', label: 'Violeta' },
+  { value: '#ef4444', label: 'Rojo coral' },
+];
+
+function oscurecerColor(hex, porcentaje = 20) {
+  try {
+    const num = parseInt(hex.replace('#', ''), 16);
+    const amt = Math.round(2.55 * porcentaje);
+    const r = Math.max(0, (num >> 16) - amt);
+    const g = Math.max(0, ((num >> 8) & 0x00ff) - amt);
+    const b = Math.max(0, (num & 0x0000ff) - amt);
+    return `#${(0x1000000 + r * 0x10000 + g * 0x100 + b).toString(16).slice(1)}`;
+  } catch {
+    return hex;
+  }
+}
+
 const buildCss = (C) => `
   @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
   *{box-sizing:border-box;margin:0;padding:0;}
@@ -530,6 +554,7 @@ export default function ReadTrackApp() {
   const DEFAULT_NOTIF_CONFIG = {
     recordatorios: true,
     modoOscuro: false,
+    colorAcento: null, // null = usar el color original del tema
     recordatorioHora: '08:00',
     recordatorioSilenciadoHasta: null, // fecha ISO hasta la que se silencian los recordatorios
     recordatorioFuente: 'todas', // 'todas' | 'propias' | 'grupo'
@@ -568,7 +593,10 @@ export default function ReadTrackApp() {
     }
   }, [data.config]);
 
-  const themeColors = data.config.modoOscuro ? DARK_THEME : THEME.colors;
+  const baseThemeColors = data.config.modoOscuro ? DARK_THEME : THEME.colors;
+  const themeColors = data.config.colorAcento
+    ? { ...baseThemeColors, lime: data.config.colorAcento, limeDk: oscurecerColor(data.config.colorAcento, 20) }
+    : baseThemeColors;
   const C = themeColors;
   const css = buildCss(themeColors);
 
@@ -945,7 +973,7 @@ export default function ReadTrackApp() {
     }
     const opciones = {
       body: cuerpo,
-      icon: '/vite.svg',
+      icon: '/icon-192.png',
       tag: 'readtrack-recordatorio-' + Date.now(), // tag unico: si repite tag antes de que la anterior se cierre, el navegador la reemplaza en silencio
     };
     try {
@@ -1240,6 +1268,19 @@ export default function ReadTrackApp() {
       close();
     } catch (err) {
       showToast(err.data?.mensaje || 'No se pudo actualizar el libro');
+    }
+  };
+
+  const handleToggleTipoLibro = async (libro) => {
+    const nuevoTipo = libro.tipo === 'DIGITAL' ? 'FISICO' : 'DIGITAL';
+    // Cambio optimista: se ve el cambio de inmediato, sin esperar la respuesta del servidor.
+    setData(d => ({ ...d, libros: d.libros.map(l => (l.id === libro.id ? { ...l, tipo: nuevoTipo } : l)) }));
+    try {
+      await librosService.actualizar(libro.id, { tipo: nuevoTipo });
+    } catch (err) {
+      // Si falla, se revierte al valor anterior.
+      setData(d => ({ ...d, libros: d.libros.map(l => (l.id === libro.id ? { ...l, tipo: libro.tipo } : l)) }));
+      showToast(err.data?.mensaje || 'No se pudo cambiar el tipo de libro');
     }
   };
 
@@ -2810,6 +2851,7 @@ export default function ReadTrackApp() {
               <thead>
                 <tr>
                   <th>Libro</th>
+                  <th>Tipo</th>
                   <th>Progreso</th>
                   <th>Estado</th>
                   <th>Acciones</th>
@@ -2832,6 +2874,16 @@ export default function ReadTrackApp() {
                             <div style={{ fontSize: 11, color: C.tHint, marginTop: 2 }}>{l.autor}</div>
                           </div>
                         </div>
+                      </td>
+                      <td>
+                        <span
+                          className="chip chip-purple"
+                          style={{ cursor: 'pointer' }}
+                          title="Clic para cambiar entre Físico y Digital"
+                          onClick={() => handleToggleTipoLibro(l)}
+                        >
+                          {l.tipo === 'DIGITAL' ? 'Digital' : 'Físico'}
+                        </span>
                       </td>
                       <td style={{ minWidth: 160 }}>
                         <div className="prog-track" style={{ marginBottom: 4 }}>
@@ -3573,8 +3625,20 @@ export default function ReadTrackApp() {
                   toggle: true,
                   key: 'recordatorios',
                   configurable: true,
+                  configModal: 'configurar_recordatorios',
+                  configIcons: '⚙️🔔',
                 },
-                { ic: <span style={{ fontSize: 16 }}>🌙</span>, bg: 'rgba(41,49,60,.06)', title: 'Modo oscuro', sub: 'Activar tema oscuro', toggle: true, key: 'modoOscuro' },
+                {
+                  ic: <span style={{ fontSize: 16 }}>🌙</span>,
+                  bg: 'rgba(41,49,60,.06)',
+                  title: 'Modo oscuro',
+                  sub: data.config.colorAcento ? 'Tema y color personalizados' : 'Activar tema oscuro',
+                  toggle: true,
+                  key: 'modoOscuro',
+                  configurable: true,
+                  configModal: 'configurar_colores',
+                  configIcons: '⚙️🖌️',
+                },
               ].map((s, i) => (
                 <div
                   key={i}
@@ -3583,7 +3647,7 @@ export default function ReadTrackApp() {
                   <div
                     style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1, cursor: s.configurable ? 'pointer' : 'default' }}
                     onClick={() => {
-                      if (s.configurable) setModal('configurar_recordatorios');
+                      if (s.configurable) setModal(s.configModal);
                     }}
                   >
                     <div style={{ width: 36, height: 36, borderRadius: 11, display: 'flex', alignItems: 'center', justifyContent: 'center', background: s.bg, flexShrink: 0 }}>
@@ -3594,7 +3658,10 @@ export default function ReadTrackApp() {
                       {s.sub && <div style={{ fontSize: 11, color: C.tHint, marginTop: 1 }}>{s.sub}</div>}
                     </div>
                     {s.configurable && (
-                      <span style={{ fontSize: 11, fontWeight: 700, color: C.purple }}>Configurar ›</span>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 700, color: C.purple }}>
+                        <span style={{ fontSize: 13 }}>{s.configIcons}</span>
+                        Configurar ›
+                      </span>
                     )}
                   </div>
                   {s.toggle && (
@@ -4152,6 +4219,10 @@ function RenderModals({ modal, setModal, data, setData, activeMateria, activeLib
     },
     configurar_recordatorios: {
       title: 'Configurar recordatorios',
+      customContent: true,
+    },
+    configurar_colores: {
+      title: 'Personalizar apariencia',
       customContent: true,
     },
     buscar_grupo: {
@@ -4722,6 +4793,105 @@ function RenderModals({ modal, setModal, data, setData, activeMateria, activeLib
               }}
             >
               Probar notificación
+            </button>
+            <button className="btn btn-lime" style={{ flex: 1, justifyContent: 'center' }} onClick={close}>
+              Listo
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (modal === 'configurar_colores') {
+    const colorActual = data.config.colorAcento || THEME.colors.lime;
+
+    const actualizarConfig = (cambios) => {
+      setData(d => ({ ...d, config: { ...d.config, ...cambios } }));
+    };
+
+    return (
+      <div className="modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) close(); }}>
+        <div className="modal" style={{ maxWidth: 480 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+            <div className="modal-title" style={{ margin: 0 }}>
+              {cfg.title}
+            </div>
+            <button onClick={close} style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.tHint, fontSize: 20 }}>
+              ×
+            </button>
+          </div>
+
+          {/* Modo oscuro */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
+            <div style={{ width: 36, height: 36, borderRadius: 11, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(41,49,60,.06)', flexShrink: 0 }}>
+              <span style={{ fontSize: 16 }}>🌙</span>
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: C.tPrimary }}>Modo oscuro</div>
+              <div style={{ fontSize: 11, color: C.tHint, marginTop: 1 }}>Cambia el fondo y los textos de toda la app</div>
+            </div>
+            <div
+              onClick={() => actualizarConfig({ modoOscuro: !data.config.modoOscuro })}
+              style={{ width: 44, height: 24, borderRadius: 12, background: data.config.modoOscuro ? C.lime : C.g300, position: 'relative', transition: 'background .2s', flexShrink: 0, cursor: 'pointer' }}
+            >
+              <div style={{ width: 20, height: 20, background: '#fff', borderRadius: '50%', position: 'absolute', top: 2, left: data.config.modoOscuro ? 22 : 2, transition: 'left .2s', boxShadow: '0 2px 4px rgba(0,0,0,.15)' }}></div>
+            </div>
+          </div>
+
+          {/* Color de acento */}
+          <div style={{ marginBottom: 20 }}>
+            <div className="field-label">Color de acento</div>
+            <div style={{ fontSize: 11, color: C.tHint, margin: '4px 0 12px' }}>
+              El color de los botones, barras de progreso y detalles resaltados en toda la app.
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10 }}>
+              {ACENTO_PRESETS.map((preset) => {
+                const seleccionado = colorActual.toLowerCase() === preset.value.toLowerCase();
+                return (
+                  <button
+                    key={preset.value}
+                    type="button"
+                    onClick={() => actualizarConfig({ colorAcento: preset.value === THEME.colors.lime ? null : preset.value })}
+                    title={preset.label}
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      gap: 6,
+                      padding: '10px 6px',
+                      borderRadius: 12,
+                      border: seleccionado ? `2px solid ${preset.value}` : '2px solid transparent',
+                      background: seleccionado ? `${preset.value}1a` : C.g100,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <span style={{
+                      width: 28,
+                      height: 28,
+                      borderRadius: '50%',
+                      background: preset.value,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      boxShadow: seleccionado ? `0 0 0 3px ${C.white}, 0 0 0 5px ${preset.value}` : 'none',
+                    }}>
+                      {seleccionado && <span style={{ color: '#fff', fontSize: 13, fontWeight: 800 }}>✓</span>}
+                    </span>
+                    <span style={{ fontSize: 9.5, color: C.tSecondary, textAlign: 'center', lineHeight: 1.2 }}>{preset.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', gap: 10 }}>
+            <button
+              className="btn btn-ghost"
+              style={{ flex: 1, justifyContent: 'center' }}
+              onClick={() => actualizarConfig({ modoOscuro: false, colorAcento: null })}
+            >
+              Restablecer
             </button>
             <button className="btn btn-lime" style={{ flex: 1, justifyContent: 'center' }} onClick={close}>
               Listo
