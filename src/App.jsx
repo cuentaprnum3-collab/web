@@ -15,6 +15,19 @@ import {
   StarIcon,
   CheckIcon,
   AppLogoIcon,
+  CheckCircleIcon,
+  XCircleIcon,
+  WarningIcon,
+  BellIcon,
+  BellOffIcon,
+  UsersIcon,
+  DoorExitIcon,
+  GearIcon,
+  MoonIcon,
+  SparklesIcon,
+  GraduationCapIcon,
+  PaperclipIcon,
+  MailIcon,
 } from './components/Common/Icons';
 import { ReadingSessionBar } from './components/Common/ReadingSessionBar';
 import loadingDotsIcon from '../icons8-dots-loading-48.png';
@@ -1243,11 +1256,17 @@ export default function ReadTrackApp() {
     }
   };
 
-  const handleToggleTipoLibro = (libro) => {
-    // Cambio puramente visual: no llama al backend ni valida nada, solo
-    // alterna lo que se muestra en pantalla entre Físico y Digital.
+  const handleToggleTipoLibro = async (libro) => {
     const nuevoTipo = libro.tipo === 'DIGITAL' ? 'FISICO' : 'DIGITAL';
+    // Cambio optimista: se ve el cambio de inmediato, sin esperar la respuesta del servidor.
     setData(d => ({ ...d, libros: d.libros.map(l => (l.id === libro.id ? { ...l, tipo: nuevoTipo } : l)) }));
+    try {
+      await librosService.actualizar(libro.id, { tipo: nuevoTipo });
+    } catch (err) {
+      // Si falla, se revierte al valor anterior.
+      setData(d => ({ ...d, libros: d.libros.map(l => (l.id === libro.id ? { ...l, tipo: libro.tipo } : l)) }));
+      showToast(err.data?.mensaje || 'No se pudo cambiar el tipo de libro');
+    }
   };
 
   const handleEliminarMateria = async (materia) => {
@@ -1718,7 +1737,9 @@ export default function ReadTrackApp() {
                 borderRadius: 10,
                 marginBottom: 14,
               }}>
-                ⚠️ {loginError}
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                  <WarningIcon size={14} color="#ef4444" /> {loginError}
+                </span>
               </div>
             )}
 
@@ -1894,7 +1915,9 @@ export default function ReadTrackApp() {
                   borderRadius: 10,
                   marginBottom: 16,
                 }}>
-                  ⚠️ {recuperarError}
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                    <WarningIcon size={14} color="#ef4444" /> {recuperarError}
+                  </span>
                 </div>
               )}
 
@@ -2566,7 +2589,9 @@ export default function ReadTrackApp() {
           <div className="page" style={{ paddingBottom: 0 }}>
             <div style={{ background: 'rgba(190,213,47,.08)', border: `2px solid ${C.lime}`, borderRadius: 14, padding: 16, marginBottom: 24 }}>
               <div style={{ fontSize: 13, fontWeight: 700, color: C.tPrimary, marginBottom: 10 }}>
-                📩 Invitaciones pendientes ({invitacionesPendientes.length})
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                  <MailIcon size={14} /> Invitaciones pendientes ({invitacionesPendientes.length})
+                </span>
               </div>
               {invitacionesPendientes.map((inv) => (
                 <div key={inv.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: C.white, borderRadius: 10, padding: '10px 14px', marginBottom: 8 }}>
@@ -2641,24 +2666,24 @@ export default function ReadTrackApp() {
         <div className="page">
           {activeMateriaTab === 'grupo' && grupo.length === 0 && (
             <div className="card" style={{ textAlign: 'center', padding: '60px 20px', marginBottom: 20 }}>
-              <div style={{ fontSize: 40, marginBottom: 12 }}>👥</div>
+              <div style={{ marginBottom: 12, display: 'flex', justifyContent: 'center' }}><UsersIcon size={40} color={C.g400} /></div>
               <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 6 }}>Sin materias en grupo</div>
               <div style={{ fontSize: 13, color: C.tHint, marginBottom: 20 }}>Busca un grupo existente usando el ID que te comparta el creador</div>
               <button className="btn btn-lime" onClick={() => setModal('buscar_grupo')}>
-                🔍 Buscar grupo
+                <SearchIcon size={14} color={C.dark} /> Buscar grupo
               </button>
             </div>
           )}
 
           {filtered.length === 0 && activeMateriaTab === 'propias' ? (
             <div className="card" style={{ textAlign: 'center', padding: '60px 20px' }}>
-              <div style={{ fontSize: 40, marginBottom: 12 }}>📚</div>
+              <div style={{ marginBottom: 12, display: 'flex', justifyContent: 'center' }}><BookIcon size={40} color={C.g400} /></div>
               <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 6 }}>Sin resultados</div>
               <div style={{ fontSize: 13, color: C.tHint }}>No se encontraron materias con ese nombre</div>
             </div>
           ) : filtered.length === 0 ? (
             <div className="card" style={{ textAlign: 'center', padding: '60px 20px' }}>
-              <div style={{ fontSize: 40, marginBottom: 12 }}>👥</div>
+              <div style={{ marginBottom: 12, display: 'flex', justifyContent: 'center' }}><UsersIcon size={40} color={C.g400} /></div>
               <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 6 }}>Sin resultados</div>
               <div style={{ fontSize: 13, color: C.tHint }}>No se encontraron materias en grupo con ese nombre</div>
             </div>
@@ -2687,7 +2712,7 @@ export default function ReadTrackApp() {
                                   title="Compartir"
                                   style={{ background: 'rgba(190,213,47,.2)', color: C.lime }}
                                 >
-                                  👥
+                                  <UsersIcon size={14} color={C.lime} />
                                 </button>
                               )}
                               <button className="act-btn act-edit" onClick={(e) => { e.stopPropagation(); setEditandoMateria(m); setModal('editar_materia'); }} title="Editar">
@@ -2714,7 +2739,7 @@ export default function ReadTrackApp() {
                                 }
                               }}
                             >
-                              🚪
+                              <DoorExitIcon size={14} color="#ef4444" />
                             </button>
                           )}
                         </div>
@@ -2722,7 +2747,7 @@ export default function ReadTrackApp() {
                       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                         <span className="chip chip-purple">{nCount} notas</span>
                         <span className="chip chip-lime">{aCount} archivos</span>
-                        {m.esGrupo && <span className="chip chip-lime" style={{ background: 'rgba(190,213,47,.2)', color: C.lime }}>👥 Grupo</span>}
+                        {m.esGrupo && <span className="chip chip-lime" style={{ background: 'rgba(190,213,47,.2)', color: C.lime, display: 'inline-flex', alignItems: 'center', gap: 4 }}><UsersIcon size={11} color={C.lime} /> Grupo</span>}
                         {m.esGrupo && !esPropietario && <span className="chip" style={{ background: C.g100, color: C.tHint }}>Compañero</span>}
                       </div>
                       <div style={{ marginTop: 12, paddingTop: 10, borderTop: `1px solid ${C.g200}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -3470,7 +3495,7 @@ export default function ReadTrackApp() {
               <div className="cal-mobile-day-title">{selectedDate.getDate()} De {getMonthNameCap(selectedDate)}</div>
 
               <div className="cal-mobile-section">
-                <div className="cal-mobile-section-title" style={{ color: '#7C2A8E' }}>📅 Sesiones de lectura</div>
+                <div className="cal-mobile-section-title" style={{ color: '#7C2A8E', display: 'flex', alignItems: 'center', gap: 6 }}><CalendarIcon size={13} color="#7C2A8E" /> Sesiones de lectura</div>
                 {sesionesDelDia.length === 0 ? (
                   <div className="cal-mobile-empty">No hay sesiones para este día.</div>
                 ) : (
@@ -3487,7 +3512,7 @@ export default function ReadTrackApp() {
               </div>
 
               <div className="cal-mobile-section">
-                <div className="cal-mobile-section-title" style={{ color: '#7a9a1e' }}>📝 Notas</div>
+                <div className="cal-mobile-section-title" style={{ color: '#7a9a1e', display: 'flex', alignItems: 'center', gap: 6 }}><NoteIcon /> Notas</div>
                 {notasDelDia.length === 0 ? (
                   <div className="cal-mobile-empty">No hay notas guardadas para este día.</div>
                 ) : (
@@ -3578,7 +3603,7 @@ export default function ReadTrackApp() {
               <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 16 }}>Configuración</div>
               {[
                 {
-                  ic: <span style={{ fontSize: 16 }}>🔔</span>,
+                  ic: <BellIcon size={16} color={C.purple} />,
                   bg: 'rgba(124,42,142,.08)',
                   title: 'Recordatorios de lectura',
                   sub: data.config.recordatorios
@@ -3592,10 +3617,10 @@ export default function ReadTrackApp() {
                   key: 'recordatorios',
                   configurable: true,
                   configModal: 'configurar_recordatorios',
-                  configIcons: '⚙️🔔',
+                  configIcons: <><GearIcon size={12} color={C.purple} /><BellIcon size={12} color={C.purple} /></>,
                 },
                 {
-                  ic: <span style={{ fontSize: 16 }}>🌙</span>,
+                  ic: <MoonIcon size={16} color={C.dark} />,
                   bg: 'rgba(41,49,60,.06)',
                   title: 'Modo oscuro',
                   sub: 'Activar tema oscuro',
@@ -3622,7 +3647,7 @@ export default function ReadTrackApp() {
                     </div>
                     {s.configurable && (
                       <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 700, color: C.purple }}>
-                        <span style={{ fontSize: 13 }}>{s.configIcons}</span>
+                        <span style={{ display: 'flex', alignItems: 'center', gap: 2 }}>{s.configIcons}</span>
                         Configurar ›
                       </span>
                     )}
@@ -3671,16 +3696,17 @@ export default function ReadTrackApp() {
             {cargandoPapelera ? (
               <div style={{ textAlign: 'center', color: C.tHint, fontSize: 13 }}>Cargando papelera...</div>
             ) : !papelera || (!papelera.libros?.length && !papelera.notas?.length && !papelera.materias?.length) ? (
-              <div style={{ textAlign: 'center', color: C.tHint, fontSize: 13, padding: '20px' }}>
-                ✨ Tu papelera está vacía
+              <div style={{ textAlign: 'center', color: C.tHint, fontSize: 13, padding: '20px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+                <SparklesIcon size={22} color={C.g400} />
+                Tu papelera está vacía
               </div>
             ) : (
               <div style={{ display: 'grid', gap: 16 }}>
                 {/* Libros eliminados */}
                 {papelera?.libros?.length > 0 && (
                   <div>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: C.tPrimary, marginBottom: 12 }}>
-                      📚 Libros ({papelera.libros.length})
+                    <div style={{ fontSize: 13, fontWeight: 600, color: C.tPrimary, marginBottom: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <BookIcon size={14} color={C.tPrimary} /> Libros ({papelera.libros.length})
                     </div>
                     <div style={{ display: 'grid', gap: 8 }}>
                       {papelera.libros.map((libro) => {
@@ -3721,8 +3747,8 @@ export default function ReadTrackApp() {
                 {/* Notas eliminadas */}
                 {papelera?.notas?.length > 0 && (
                   <div>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: C.tPrimary, marginBottom: 12 }}>
-                      📝 Notas ({papelera.notas.length})
+                    <div style={{ fontSize: 13, fontWeight: 600, color: C.tPrimary, marginBottom: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <NoteIcon /> Notas ({papelera.notas.length})
                     </div>
                     <div style={{ display: 'grid', gap: 8 }}>
                       {papelera.notas.map((nota) => {
@@ -3765,8 +3791,8 @@ export default function ReadTrackApp() {
                 {/* Materias eliminadas */}
                 {papelera?.materias?.length > 0 && (
                   <div>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: C.tPrimary, marginBottom: 12 }}>
-                      🎓 Materias ({papelera.materias.length})
+                    <div style={{ fontSize: 13, fontWeight: 600, color: C.tPrimary, marginBottom: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <GraduationCapIcon size={14} color={C.tPrimary} /> Materias ({papelera.materias.length})
                     </div>
                     <div style={{ display: 'grid', gap: 8 }}>
                       {papelera.materias.map((materia) => {
@@ -3943,12 +3969,25 @@ export default function ReadTrackApp() {
         />
       )}
 
-      {toast && (
-        <div className="toast">
-          <span>✅</span>
-          {toast}
-        </div>
-      )}
+      {toast && (() => {
+        const match = toast.match(/^(✅|❌|⚠️|⚠|🔔|🔕)\s*/u);
+        const emoji = match ? match[1] : null;
+        const mensaje = match ? toast.slice(match[0].length) : toast;
+        const iconos = {
+          '✅': <CheckCircleIcon size={16} color="#16a34a" />,
+          '❌': <XCircleIcon size={16} color="#ef4444" />,
+          '⚠️': <WarningIcon size={16} color="#f59e0b" />,
+          '⚠': <WarningIcon size={16} color="#f59e0b" />,
+          '🔔': <BellIcon size={16} color="#16a34a" />,
+          '🔕': <BellOffIcon size={16} color="#5a6372" />,
+        };
+        return (
+          <div className="toast">
+            {iconos[emoji] || <CheckCircleIcon size={16} color="#16a34a" />}
+            {mensaje}
+          </div>
+        );
+      })()}
     </div>
   );
 }
@@ -4216,8 +4255,8 @@ function RenderModals({ modal, setModal, data, setData, activeMateria, activeLib
           )}
 
           {fechaCumplimientoVer && (
-            <div style={{ fontSize: 13, color: C.tSecondary, marginBottom: 16 }}>
-              📅 Fecha de cumplimiento: {fechaCumplimientoVer}
+            <div style={{ fontSize: 13, color: C.tSecondary, marginBottom: 16, display: 'flex', alignItems: 'center', gap: 6 }}>
+              <CalendarIcon size={13} /> Fecha de cumplimiento: {fechaCumplimientoVer}
             </div>
           )}
 
@@ -4241,8 +4280,8 @@ function RenderModals({ modal, setModal, data, setData, activeMateria, activeLib
 
           {archivosVer.length > 0 && (
             <div style={{ marginBottom: 20 }}>
-              <div style={{ fontSize: 12, color: C.tHint, marginBottom: 10 }}>
-                📎 {archivosVer.length} archivo{archivosVer.length > 1 ? 's' : ''} adjunto{archivosVer.length > 1 ? 's' : ''}
+              <div style={{ fontSize: 12, color: C.tHint, marginBottom: 10, display: 'flex', alignItems: 'center', gap: 5 }}>
+                <PaperclipIcon size={12} /> {archivosVer.length} archivo{archivosVer.length > 1 ? 's' : ''} adjunto{archivosVer.length > 1 ? 's' : ''}
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {archivosVer.map((archivo, idx) => (
@@ -4299,8 +4338,8 @@ function RenderModals({ modal, setModal, data, setData, activeMateria, activeLib
       <div className="modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) close(); }}>
         <div className="modal" style={{ maxWidth: 500 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-            <div className="modal-title" style={{ margin: 0 }}>
-              🔍 Buscar grupo
+            <div className="modal-title" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+              <SearchIcon size={16} color={C.tPrimary} /> Buscar grupo
             </div>
             <button onClick={close} style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.tHint, fontSize: 20 }}>
               ×
@@ -4502,7 +4541,7 @@ function RenderModals({ modal, setModal, data, setData, activeMateria, activeLib
           {/* Alerta de responsabilidad */}
           <div style={{ background: 'rgba(190,213,47,.1)', border: `2px solid ${C.lime}`, borderRadius: 12, padding: 16, marginBottom: 20 }}>
             <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
-              <div style={{ fontSize: 20, marginTop: 2 }}>⚠️</div>
+              <div style={{ marginTop: 2 }}><WarningIcon size={20} color={C.lime} /></div>
               <div>
                 <div style={{ fontSize: 13, fontWeight: 700, color: C.tPrimary, marginBottom: 6 }}>Responsabilidad del grupo</div>
                 <div style={{ fontSize: 12, color: C.tSecondary, lineHeight: 1.6 }}>
@@ -4530,8 +4569,8 @@ function RenderModals({ modal, setModal, data, setData, activeMateria, activeLib
           <div style={{ background: C.g100, borderRadius: 10, padding: 12, marginBottom: 16 }}>
             <div style={{ fontSize: 12, fontWeight: 600, color: C.tPrimary, marginBottom: 8 }}>Resumen</div>
             <div style={{ fontSize: 12, color: C.tSecondary }}>
-              <div>📚 Materia: <span style={{ fontWeight: 600 }}>{activeMateria?.nombre}</span></div>
-              <div style={{ marginTop: 4 }}>👥 Invitaciones: <span style={{ fontWeight: 600 }}>{emailsComparticion.split(',').filter(e => e.trim()).length}</span></div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}><BookIcon size={13} color={C.tSecondary} /> Materia: <span style={{ fontWeight: 600 }}>{activeMateria?.nombre}</span></div>
+              <div style={{ marginTop: 4, display: 'flex', alignItems: 'center', gap: 6 }}><UsersIcon size={13} color={C.tSecondary} /> Invitaciones: <span style={{ fontWeight: 600 }}>{emailsComparticion.split(',').filter(e => e.trim()).length}</span></div>
             </div>
             {activeMateria?.grupoId && (
               <div style={{ display: 'none', marginTop: 10, paddingTop: 10, borderTop: `1px solid ${C.g300}` }}>
@@ -5038,7 +5077,7 @@ function NotaCard({ nota, color, C, esGrupo, onEdit, onDelete, onOpen }) {
         )}
 
         {archivos.length > 1 && (
-          <div style={{ fontSize: 11, color: '#9ba3ad', marginTop: 6 }}>📎 {archivos.length} archivos adjuntos</div>
+          <div style={{ fontSize: 11, color: '#9ba3ad', marginTop: 6, display: 'flex', alignItems: 'center', gap: 5 }}><PaperclipIcon size={11} color="#9ba3ad" /> {archivos.length} archivos adjuntos</div>
         )}
 
         {nota.enlace && !youtubeThumbnail && (
