@@ -1225,7 +1225,11 @@ export default function ReadTrackApp() {
         paginasLeidas: form.estado === 'LEYENDO' ? (Number(form.paginasLeidas) || 0) : undefined,
       });
       setData(d => ({ ...d, libros: [response.data, ...d.libros] }));
-      showToast('✅ Libro agregado a tu biblioteca');
+      if (form.estado === 'LEYENDO' && response.data?.estado === 'TERMINADO') {
+        showToast('✅ Ya habías llegado a la última página, así que se guardó como Terminado');
+      } else {
+        showToast('✅ Libro agregado a tu biblioteca');
+      }
       close();
     } catch (err) {
       showToast(err.data?.mensaje || 'No se pudo agregar el libro');
@@ -3617,7 +3621,7 @@ export default function ReadTrackApp() {
                   key: 'recordatorios',
                   configurable: true,
                   configModal: 'configurar_recordatorios',
-                  configIcons: <><GearIcon size={12} color={C.purple} /><BellIcon size={12} color={C.purple} /></>,
+                  configIcons: <><GearIcon size={15} color={C.purple} /><BellIcon size={15} color={C.purple} /></>,
                 },
                 {
                   ic: <MoonIcon size={16} color={C.dark} />,
@@ -3646,9 +3650,8 @@ export default function ReadTrackApp() {
                       {s.sub && <div style={{ fontSize: 11, color: C.tHint, marginTop: 1 }}>{s.sub}</div>}
                     </div>
                     {s.configurable && (
-                      <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 700, color: C.purple }}>
-                        <span style={{ display: 'flex', alignItems: 'center', gap: 2 }}>{s.configIcons}</span>
-                        Configurar ›
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 4, color: C.purple }} title="Configurar">
+                        {s.configIcons}
                       </span>
                     )}
                   </div>
@@ -3680,7 +3683,8 @@ export default function ReadTrackApp() {
           }}
           style={{ marginBottom: 16 }}
         >
-          {mostrarPapelera ? '📦 Ocultar papelera' : '📦 Ver papelera (elementos eliminados)'}
+          <TrashIcon size={14} color={C.dark} />
+          {mostrarPapelera ? 'Ocultar papelera' : 'Ver papelera (elementos eliminados)'}
         </button>
 
         {mostrarPapelera && (

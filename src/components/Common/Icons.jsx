@@ -101,9 +101,9 @@ export function EditIcon() {
   );
 }
 
-export function TrashIcon() {
+export function TrashIcon({ size = 13, color = '#ef4444' }) {
   return (
-    <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth={2}>
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2}>
       <polyline points="3 6 5 6 21 6" />
       <path d="M19 6l-1 14H6L5 6" />
       <path d="M10 11v6M14 11v6" />
